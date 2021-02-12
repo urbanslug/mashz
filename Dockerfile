@@ -33,4 +33,4 @@ RUN cmake -H. -Bbuild && cmake --build build -- -j3
 RUN apt-get -qy autoremove
 
 # add wfmash to the PATH
-ENV PATH /wfmash/bin:$PATH
+ENV PATH /wfmash/build/bin:$PATH
