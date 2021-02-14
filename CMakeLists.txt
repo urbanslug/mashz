@@ -22,6 +22,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #add_subdirectory(src/common/wflign/deps/WFA EXCLUDE_FROM_ALL)
 #add_subdirectory(src/common/wflign/deps/wflambda EXCLUDE_FROM_ALL)
 add_subdirectory(src/common/wflign EXCLUDE_FROM_ALL)
+add_subdirectory(src/common/lastz EXCLUDE_FROM_ALL)
 
 add_executable(wfmash
   src/yeet/yeet_main.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/common/wflign/build/lib -Isrc/common/wflign/deps -Isrc/common/wflign/deps/wflambda -Isrc/common/wflign/deps/patchmap -Isrc/common $(SOURCE_1) -o wfmash @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -lwflambda -lwflign
@@ -32,7 +33,8 @@ target_include_directories(wfmash PRIVATE
   src/common/wflign/deps/wflambda
   src/common/wflign/deps/patchmap
   src/common/wflign/deps/WFA
-  src/common)
+  src/common
+  src/common/lastz)
 
 target_link_libraries(wfmash
   gsl
