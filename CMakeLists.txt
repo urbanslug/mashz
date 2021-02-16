@@ -25,16 +25,16 @@ add_subdirectory(src/common/wflign EXCLUDE_FROM_ALL)
 add_subdirectory(src/common/lastz EXCLUDE_FROM_ALL)
 
 add_executable(wfmash
-  src/yeet/yeet_main.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/common/wflign/build/lib -Isrc/common/wflign/deps -Isrc/common/wflign/deps/wflambda -Isrc/common/wflign/deps/patchmap -Isrc/common $(SOURCE_1) -o wfmash @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -lwflambda -lwflign
+  src/yeet/yeet_main.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/common/wflign/build/lib -Lsrc/common/lastz/build/lib -Isrc/common/wflign/deps -Isrc/common/wflign/deps/wflambda -Isrc/common/wflign/deps/patchmap -Isrc/common $(SOURCE_1) -o wfmash @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -lwflambda -lwflign -llastz
 
 target_include_directories(wfmash PRIVATE
   src
+  src/common/lastz
   src/common/wflign/deps
   src/common/wflign/deps/wflambda
   src/common/wflign/deps/patchmap
   src/common/wflign/deps/WFA
-  src/common
-  src/common/lastz)
+  src/common)
 
 target_link_libraries(wfmash
   gsl
@@ -43,6 +43,7 @@ target_link_libraries(wfmash
   pthread
   libwflign_static
   edlib
+  lastz
   wflambda
   wfa
   z)
