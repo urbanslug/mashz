@@ -1,3 +1,0 @@
-[submodule "src/common/lastz"]
-	path = src/common/lastz
-	url = git@github.com:urbanslug/lastz.git

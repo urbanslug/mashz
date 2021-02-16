@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
-project(wfmash VERSION 0.0.1)
+project(mashz VERSION 0.0.1)
 
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
@@ -10,42 +10,25 @@ set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are use
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mcx16 -march=native -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mcx16 -march=native -g")
-#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O -mcx16  -march=native -g -fsanitize=address")
-#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O -mcx16  -march=native -g -fsanitize=address")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mcx16 -march=native -g")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mcx16 -march=native -g")
+# set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O -mcx16  -march=native -g -fsanitize=address")
+# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O -mcx16  -march=native -g -fsanitize=address")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-#add_subdirectory(src/common/wflign/deps/WFA EXCLUDE_FROM_ALL)
-#add_subdirectory(src/common/wflign/deps/wflambda EXCLUDE_FROM_ALL)
-add_subdirectory(src/common/wflign EXCLUDE_FROM_ALL)
-add_subdirectory(src/common/lastz EXCLUDE_FROM_ALL)
 
-add_executable(wfmash
-  src/yeet/yeet_main.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/common/wflign/build/lib -Lsrc/common/lastz/build/lib -Isrc/common/wflign/deps -Isrc/common/wflign/deps/wflambda -Isrc/common/wflign/deps/patchmap -Isrc/common $(SOURCE_1) -o wfmash @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -lwflambda -lwflign -llastz
+add_subdirectory(src/lastz EXCLUDE_FROM_ALL)
 
-target_include_directories(wfmash PRIVATE
+add_executable(mashz
+  src/mashz.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/lastz/build/lib $(SOURCE_1) -o mashz @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -llastz
+
+
+target_include_directories(mashz PRIVATE
   src
-  src/common/lastz
-  src/common/wflign/deps
-  src/common/wflign/deps/wflambda
-  src/common/wflign/deps/patchmap
-  src/common/wflign/deps/WFA
-  src/common)
+  src/lastz)
 
-target_link_libraries(wfmash
-  gsl
-  gslcblas
-  m
-  pthread
-  libwflign_static
-  edlib
-  lastz
-  wflambda
-  wfa
-  z)
 
-install(TARGETS wfmash DESTINATION bin)
+install(TARGETS mashz DESTINATION bin)
