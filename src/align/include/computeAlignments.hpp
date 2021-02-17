@@ -30,6 +30,8 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
+#include "common/lastz/src/lastz.h"
+
 namespace align
 {
 
