@@ -228,7 +228,7 @@ typedef struct chore
 	} chore;
 
 
-typedef struct partition
+typedef struct lastz_partition
 	{							//  .. layout must match struct cappartition (capsule.h)
 	unspos	sepBefore;			//     the position (in seq->v) of the
 								//     .. separating NUL preceding this
@@ -255,7 +255,7 @@ typedef struct partition
 								//     .. only for entries 0..len-1 in
 								//     .. seqpartition->p;  points into
 								//     .. seqpartition->pool
-	} partition;
+	} lastz_partition;
 
 
 typedef struct seqpartition
@@ -271,7 +271,7 @@ typedef struct seqpartition
 								//     .. at least 1 more than len
 	u32		len;				//     the number of partitions of the sequence
 
-	partition*	p;				// (H) an array, indexed by 0..len, of the
+	lastz_partition*	p;				// (H) an array, indexed by 0..len, of the
 								//     .. partitions
 
 	u32		poolSize;			//     the number of bytes allocated (size) and
@@ -684,11 +684,11 @@ void  sequence_long_enough          (seq* seq, unspos allocLen, int anticipate);
 void  free_sequence                 (seq* seq);
 int   load_sequence                 (seq* seq);
 int   another_sequence              (seq* seq);
-partition* lookup_partition_no_die  (seq* seq, unspos pos);
-partition* lookup_partition         (seq* seq, unspos pos);
-partition* lookup_named_partition   (seq* seq, char* name);
-partition* last_partition_with_name (seq* seq, partition* firstPart);
-partition* lookup_partition_seq_pos (seq* seq, partition* part, unspos pos);
+lastz_partition* lookup_partition_no_die  (seq* seq, unspos pos);
+lastz_partition* lookup_partition         (seq* seq, unspos pos);
+lastz_partition* lookup_named_partition   (seq* seq, char* name);
+lastz_partition* last_partition_with_name (seq* seq, lastz_partition* firstPart);
+lastz_partition* lookup_partition_seq_pos (seq* seq, lastz_partition* part, unspos pos);
 void  print_sequence                (FILE* f, seq* seq, char* header, int perLine);
 void  print_partition_table         (FILE* f, seq* _seq);
 void  mask_sequence                 (seq* seq, char* maskFilename, int maskChar);
