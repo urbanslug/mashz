@@ -568,7 +568,7 @@ exparg expanders[] =
 //
 //----------
 
-int main (int argc, char** argv);
+int lastz (int argc, char** argv);
 
 static int       report_progress         (seq* target, seq* query,
                                           int applyChore, int numQueries, int numChores,
@@ -631,10 +631,13 @@ static void      lastz_show_stats        (FILE* f);
 #define trackTargetRev
 #endif // allowSeveralTargets or trackMemoryUsage or valgrindMemoryCheck
 
+void hello() {
+  printf("Hello\n");
+}
 
 //=== the actual function main() ===
 
-int main
+int lastz
    (int				argc,
 	char**			argv)
 	{

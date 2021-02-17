@@ -59,11 +59,11 @@ set(SOURCES
   src/capsule.c)
 
 
-add_executable(lastz ${SOURCES})
+# add_executable(lastz ${SOURCES})
 # set(CMAKE_C_FLAGS "-c ${CMAKE_C_FLAGS}")
 
-add_library(lastz_lib ${SOURCES})
-set_target_properties(lastz_lib PROPERTIES OUTPUT_NAME "lastz")
+add_library(lastz ${SOURCES})
+set_target_properties(lastz PROPERTIES OUTPUT_NAME "lastz")
 
 target_link_libraries(lastz m)
 # execute_process (COMMAND make)

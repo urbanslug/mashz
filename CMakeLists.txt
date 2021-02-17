@@ -32,6 +32,7 @@ add_executable(mashz
 target_include_directories(mashz PRIVATE
   src
   src/common/wflign/deps
+  src/common/lastz
   src/common/wflign/deps/wflambda
   src/common/wflign/deps/patchmap
   src/common/wflign/deps/WFA
@@ -45,6 +46,7 @@ target_link_libraries(mashz
   libwflign_static
   edlib
   wflambda
+  lastz
   wfa
   z)
 

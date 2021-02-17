@@ -26,6 +26,9 @@
 #define global extern
 #endif
 
+int lastz (int argc, char** argv);
+void hello ();
+
 //----------
 //
 // data structures and types
