@@ -2161,7 +2161,7 @@ static int seed_hit_below_diagonal
 	unspos			pos2)
 	{
 	seqpartition*	sp1, *sp2;
-	partition*		part1, *part2;
+	lastz_partition*		part1, *part2;
 	int				partIx1, partIx2;
 
 	snoopBelowDiagonal_1;

@@ -136,8 +136,8 @@ typedef struct segbatch
 	u32		end;				// index (into a segment table) of the first
 								// .. entry NOT in a batch (i.e. the one after
 								// .. the last entry).
-	partition*	part1;			// sequence partitions that "contain" this
-	partition*	part2;			// .. batch;  either of these can be NULL if we
+	lastz_partition*	part1;			// sequence partitions that "contain" this
+	lastz_partition*	part2;			// .. batch;  either of these can be NULL if we
 								// .. aren't dealing with partitions in the
 								// .. corresponding sequence
 	} segbatch;
@@ -199,8 +199,8 @@ static void     propagate_max_score (kdnode* subtree, bigscore s, u32 ix);
 
 #define debugSnoopBatches_1                                                   \
 	{                                                                         \
-	partition* batPart1 = chainBatches->batch[batIx].part1;                   \
-	partition* batPart2 = chainBatches->batch[batIx].part2;                   \
+	lastz_partition* batPart1 = chainBatches->batch[batIx].part1;                   \
+	lastz_partition* batPart2 = chainBatches->batch[batIx].part2;                   \
 	fprintf (stderr, "batch[%u] %u..%u",                                      \
 					 batIx, startSegIx, endSegIx-1);                          \
 	if (batPart1 != NULL)                                                     \
@@ -232,7 +232,7 @@ score try_reduce_to_chain
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part1, *part2;
+	lastz_partition*		part1, *part2;
 	segment*		seg, *seg2;
 	segtable		stSubset;
 	u32				entriesNeeded;

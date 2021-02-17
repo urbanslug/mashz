@@ -338,7 +338,7 @@ typedef struct segbatch
 	u32		end;				// index (into a segment table) of the first
 								// .. entry NOT in a batch (i.e. the one after
 								// .. the last entry).
-	partition*	part;			// sequence partition that "contains" this
+	lastz_partition*	part;			// sequence partition that "contains" this
 								// .. batch;  this can be NULL if we aren't
 								// .. dealing with partitions
 	} segbatch;
@@ -375,11 +375,11 @@ static int      identical_partition_of_sequence
                                    (seq* seq1, seq* seq2);
 static score    score_identical_partition
                                    (seq* seq1, seq* seq2,
-                                    partition* p1, partition* p2,
+                                    lastz_partition* p1, lastz_partition* p2,
                                     scoreset* scoring);
 static score    score_identical_partition_of
                                    (seq* seq1, seq* seq2,
-                                    partition* p1,
+                                    lastz_partition* p1,
                                     scoreset* scoring);
 static void     ydrop_align        (alignio* io);
 static score    ydrop_one_sided_align (alignio* io, int reversed,
@@ -838,7 +838,7 @@ static unspos segment_peak
 #define debugSnoopBatches_1                                                  \
 	if (doHspsInBatches)                                                     \
 		{                                                                    \
-		partition* batPart = segBatches->batch[batIx].part;                  \
+		lastz_partition* batPart = segBatches->batch[batIx].part;                  \
 		fprintf (stderr, "batch[%u] %u..%u",                                 \
 		                 batIx, startSegIx, endSegIx-1);                     \
 		if (batPart != NULL)                                                 \
@@ -1015,7 +1015,7 @@ alignel* gapped_extend
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		p1, *p2;
+	lastz_partition*		p1, *p2;
 	galign**		msp;
 	alignel*		a;
 	score			s;
@@ -1026,7 +1026,7 @@ alignel* gapped_extend
 	aliseg*			bp, *bq;
 	u32				i;
 	unspos			pos1, pos2, len1, len2;
-	partition*		part;
+	lastz_partition*		part;
 	int				partitionedTriviality, delayedCheckForTrivial;
 	int				doHspsInBatches;
 	sbtable*		segBatches;
@@ -1598,7 +1598,7 @@ static sbtable* batched_segments
 	{
 	u32				entriesNeeded;
 	size_t			bytesNeeded;
-	partition*		part;
+	lastz_partition*		part;
 	segment*		anc;
 	unspos			pEnd;
 	u32				batIx, partIx, ancIx;
@@ -1917,7 +1917,7 @@ static int identical_partitioned_sequences
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		p1, *p2;
+	lastz_partition*		p1, *p2;
 	u32				partIx;
 	u8*				a,   *b;
 	u8				aNuc, bNuc;
@@ -2004,7 +2004,7 @@ static int identical_partition_of_sequence
 #endif // cache_partition_lengths
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		p1;
+	lastz_partition*		p1;
 	u32				partIx;
 	u8*				a,   *b;
 	u8				aNuc, bNuc;
@@ -2096,8 +2096,8 @@ static int identical_partition_of_sequence
 // Arguments:
 //	seq*		seq1:		The sequence containing p1.
 //	seq*		seq2:		The sequence containing p2.
-//	partition*	p1:			One partition.
-//	partition*	p2:			The other partition.
+//	lastz_partition*	p1:			One partition.
+//	lastz_partition*	p2:			The other partition.
 //	scoreset*	scoring:	The scoring scheme to use.
 //
 // Returns:
@@ -2116,8 +2116,8 @@ static int identical_partition_of_sequence
 static score score_identical_partition
    (seq*			seq1,
 	seq*			seq2,
-	partition*		p1,
-	partition*		p2,
+	lastz_partition*		p1,
+	lastz_partition*		p2,
 	scoreset*		scoring)
 	{
 	u8*				a,   *b;
@@ -2159,7 +2159,7 @@ static score score_identical_partition
 // Arguments:
 //	seq*		seq1:		The sequence containing p1.
 //	seq*		seq2:		The other sequence (not partitioned).
-//	partition*	p1:			The partition.
+//	lastz_partition*	p1:			The partition.
 //	scoreset*	scoring:	The scoring scheme to use.
 //
 // Returns:
@@ -2179,7 +2179,7 @@ static score score_identical_partition
 static score score_identical_partition_of
    (seq*			seq1,
 	seq*			seq2,
-	partition*		p1,
+	lastz_partition*		p1,
 	scoreset*		scoring)
 	{
 	u8*				a,   *b;
@@ -2305,7 +2305,7 @@ static void lop_final_indels   (alignio* io);
 #ifdef snoopSubprobs
 
 #define snoopSubprobsA_V                                                     \
-	partition*	part;                                                        \
+	lastz_partition*	part;                                                        \
 	char*		name1, *name2
 
 #define snoopSubprobsA_1                                                     \
@@ -5197,7 +5197,7 @@ u32 gappily_extend_hsps
 	seq*			seq2 = info->seq2;
 	seqpartition*	sp1  = &seq1->partition;
 	seqpartition*	sp2  = &seq2->partition;
-	partition*		p1, *p2;
+	lastz_partition*		p1, *p2;
 	unspos			peak;
 	alignio			io;
 	galign			mp;

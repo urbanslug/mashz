@@ -574,8 +574,8 @@ static void try_bounded_align
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part1, *part2;
-	partition*		partX1, *partX2, *partY1, *partY2, *partX, *partY;
+	lastz_partition*		part1, *part2;
+	lastz_partition*		partX1, *partX2, *partY1, *partY2, *partX, *partY;
 	int				split1, split2;
 	unspos			b1right, e1left, b2right, e2left;
 	unspos			b1x, e1x, b2y, e2y;

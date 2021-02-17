@@ -483,7 +483,7 @@ segtable* read_segment_table
 	char			queryStrand = '+';
 	seqpartition*	tSp = &target->partition;
 	seqpartition*	qSp = &query->partition;
-	partition*		tNamePart, *tPart, *qNamePart, *qPart;
+	lastz_partition*		tNamePart, *tPart, *qNamePart, *qPart;
 	u32				tIx;
 	int				err;
 
@@ -1941,7 +1941,7 @@ void write_segments
 	static unspos	tStart, qStart;
 	seqpartition*	tSp = &target->partition;
 	seqpartition*	qSp = &query->partition;
-	partition*		tPart, *qPart;
+	lastz_partition*		tPart, *qPart;
 	u8*				tV, *qV;
 	u32				ix;
 

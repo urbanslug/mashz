@@ -2315,7 +2315,7 @@ static seq* capsule_target
 		{
 		seqpartition* sp = &target->partition;
 
-		sp->p         = (partition*) partitions;
+		sp->p         = (lastz_partition*) partitions;
 		sp->size      = info->numPartitions + 1;
 		sp->len       = info->numPartitions;
 		sp->pool      = namePool;
@@ -2467,7 +2467,7 @@ static interval resolve_chore_target
 	seq*			target)
 	{
 	seqpartition*	tSp = &target->partition;
-	partition*		tNamePart, *tPart;
+	lastz_partition*		tNamePart, *tPart;
 	int				nameIsWildcard;
 	char*			tHeader;
 	unspos			tStart, tEnd;
@@ -2580,7 +2580,7 @@ static interval resolve_chore_query
 	char			strand)
 	{
 	seqpartition*	qSp = &query->partition;
-	partition*		qNamePart, *qPart;
+	lastz_partition*		qNamePart, *qPart;
 	chore*			_chore = &query->chore;
 	unspos			qStart, qEnd;
 	unspos			qSeqStart, qSeqEnd, qOffset, qLen;
@@ -4099,7 +4099,7 @@ static alignel* mirror_alignments
 	seq*			_seq1  = currParams->seq1;
 	seq*			_seq2  = currParams->seq2;
 	seqpartition*	sp2 = &_seq2->partition;
-	partition*		part1, *part2;
+	lastz_partition*		part1, *part2;
 	unspos			seqLen = _seq1->len;
 	int				sameStrand;
 	alignel*		newAlignList, *a, *aPrev, *aNext, *aTail, *b, *bTail;

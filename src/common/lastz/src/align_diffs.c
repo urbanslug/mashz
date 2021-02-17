@@ -305,7 +305,7 @@ static void print_align_difference
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			height, width, i, j, run;
 	u32				opIx;
 	u8*				p, *q;
@@ -623,7 +623,7 @@ static void print_match_difference
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1 = seq1->v + pos1;
 	u8*				s2 = seq2->v + pos2;
 	char*			name1, *name2;

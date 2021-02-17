@@ -217,7 +217,7 @@ u64 write_capsule_file
 	if (sizeof(unspos) != sizeof(u32))
 		suicide ("internal error, capsule expects positions to be 32 bits");
 
-	if (sizeof(partition) != sizeof(cappartition))
+	if (sizeof(lastz_partition) != sizeof(cappartition))
 		suicidef ("internal error, capsule expects partition records to be %d bytes",
 		          sizeof(cappartition));
 
@@ -284,7 +284,7 @@ u64 write_capsule_file
 	partBytes = poolBytes = 0;
 	if (sp->p != NULL)
 		{
-		partLength = (sp->len + 1) * sizeof(partition);
+		partLength = (sp->len + 1) * sizeof(lastz_partition);
 		partBytes  = round_up_32 (partLength);
 
 		poolLength = sp->poolLen;

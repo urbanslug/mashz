@@ -138,7 +138,7 @@ void alignment_coverage
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			seq1Len, seq2Len;
 
 	if (!seq1->needTrueLen)
@@ -303,7 +303,7 @@ void segment_coverage
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			seq1Len, seq2Len;
 
 	if (!seq1->needTrueLen)

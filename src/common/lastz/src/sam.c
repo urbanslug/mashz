@@ -215,7 +215,7 @@ void print_sam_header
 	arg_dont_complain(seq*  seq2))
 	{
 	seqpartition*	sp1 = &seq1->partition;
-	partition*		p;
+	lastz_partition*		p;
 	u32				ix;
 	char*			name1;
 
@@ -331,7 +331,7 @@ void print_sam_align
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			height, width, i, j, prevI, prevJ, run;
 	u32				opIx;
 	unspos			len2;
@@ -516,7 +516,7 @@ void print_sam_match
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	char*			name1, *name2;
 	unspos			offset1, offset2, start1, start2, end2;
 	unspos			startLoc1, startLoc2;
@@ -659,7 +659,7 @@ static void print_query_bases
 	int				softMasked)
 	{
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s2 = seq2->v + pos2;
 	u8*				ss2;
 	unspos			offset2, start2, end2;
@@ -739,7 +739,7 @@ static void print_query_quals
 	int				softMasked)
 	{
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s2 = seq2->vq + pos2;
 	u8*				ss2;
 	unspos			offset2, start2, end2;

@@ -1847,7 +1847,7 @@ int load_sequence
    (seq*			_seq)
 	{
 	seqpartition*	sp;
-	partition*		p;
+	lastz_partition*		p;
 	unspos			sepPos;
 	unspos			oldTrueLen;
 
@@ -6120,7 +6120,7 @@ static void separate_sequence
 	int				inSepRun;
 	u8				ch, chBefore, chAfter;
 	u32				newSpLen;
-	partition*		p, *pFrom, *pTo;
+	lastz_partition*		p, *pFrom, *pTo;
 	u32				fromIx, toIx;
 	unspos			sepPrefix, sepSuffix, sepBefore, sepAfter;
 	unspos			startLoc;
@@ -6313,7 +6313,7 @@ static void add_partition
 	unspos			trueLen)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		p;
+	lastz_partition*		p;
 	char*			header;
 	int				headerLen;
 
@@ -6456,13 +6456,13 @@ static void enough_partitions
 		numPartitions++;					// (extra one for a sentinel)
 		if (anticipate)						// anticipatory, grow by about 13%
 			numPartitions += 30 + numPartitions / 8;
-		bytesNeeded = numPartitions * sizeof(partition);
+		bytesNeeded = numPartitions * sizeof(lastz_partition);
 
 		if (roundUp)
 			{
 			bytesNeeded   = round_up_16K (bytesNeeded);
-			numPartitions = bytesNeeded / sizeof(partition);
-			bytesNeeded   = numPartitions * sizeof(partition);
+			numPartitions = bytesNeeded / sizeof(lastz_partition);
+			bytesNeeded   = numPartitions * sizeof(lastz_partition);
 			}
 
 		sp->p    = realloc_or_die ("enough_partitions (p)", sp->p, bytesNeeded);
@@ -6517,16 +6517,16 @@ static void enough_partitions
 //
 //----------
 
-static partition* lookup_partition_core (seq* _seq, unspos pos, int dieOnFailure);
+static lastz_partition* lookup_partition_core (seq* _seq, unspos pos, int dieOnFailure);
 
-partition* lookup_partition_no_die (seq* _seq, unspos pos)
+lastz_partition* lookup_partition_no_die (seq* _seq, unspos pos)
 	{ return lookup_partition_core (_seq, pos, /* dieOnFailure */ false); }
 
-partition* lookup_partition (seq* _seq, unspos pos)
+lastz_partition* lookup_partition (seq* _seq, unspos pos)
 	{ return lookup_partition_core (_seq, pos, /* dieOnFailure */ true); }
 
 
-partition* lookup_partition_core
+lastz_partition* lookup_partition_core
    (seq*				_seq,
 	unspos				pos,
 	int					dieOnFailure)
@@ -6534,10 +6534,10 @@ partition* lookup_partition_core
 #ifdef cache_partition_lookups // see note (2)
 	static seq*			cachedSeq    = NULL;
 	static unspos		cachedPos    = ((unspos) -1);
-	static partition*	cachedResult = NULL;
+	static lastz_partition*	cachedResult = NULL;
 #endif // cache_partition_lookups
 	seqpartition*		sp = &_seq->partition;
-	partition*			p;
+	lastz_partition*			p;
 	u32					hi, lo, ix;
 	char*				reason;
 
@@ -6661,12 +6661,12 @@ failure:
 //
 //----------
 
-partition* lookup_named_partition
+lastz_partition* lookup_named_partition
    (seq*			_seq,
 	char*			name)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u32				ix;
 	int				found;
 
@@ -6697,19 +6697,19 @@ partition* lookup_named_partition
 //
 // Arguments:
 //	seq*		_seq:	The sequence.
-//	partition*	part:	The first partition with the desired name.
+//	lastz_partition*	part:	The first partition with the desired name.
 //
 // Returns:
 //	A pointer to the partition record.
 //
 //----------
 
-partition* last_partition_with_name
+lastz_partition* last_partition_with_name
    (seq*			_seq,
-	partition*		firstPart)
+	lastz_partition*		firstPart)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		scanPart, *prevPart;
+	lastz_partition*		scanPart, *prevPart;
 	u32				ix;
 	char*			name;
 
@@ -6718,7 +6718,7 @@ partition* last_partition_with_name
 
 	// determine the index into the partition list
 	// $$$ perhaps to be safe we should use integer arithmetic to make sure
-	//     .. firstPart - sp->p is a multiple of sizeof(partition)
+	//     .. firstPart - sp->p is a multiple of sizeof(lastz_partition)
 
 	ix = firstPart - sp->p;
 	if (ix >= sp->len)
@@ -6752,7 +6752,7 @@ partition* last_partition_with_name
 //
 // Arguments:
 //	seq*		_seq:	The sequence.
-//	partition*	part:	The first partition for a given sequence (by name).
+//	lastz_partition*	part:	The first partition for a given sequence (by name).
 //	unspos		pos:	The position (within the sequence) to look for.  This
 //						.. is origin-one.
 //
@@ -6761,13 +6761,13 @@ partition* last_partition_with_name
 //
 //----------
 
-partition* lookup_partition_seq_pos
+lastz_partition* lookup_partition_seq_pos
    (seq*			_seq,
-	partition*		_part,
+	lastz_partition*		_part,
 	unspos			pos)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		part = _part;
+	lastz_partition*		part = _part;
 	char*			name;
 	unspos			endLoc;
 	u32				ix;
@@ -6890,7 +6890,7 @@ void print_partition_table
 	seq*			_seq)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		p;
+	lastz_partition*		p;
 	u32				ix;
 
 	if (sp->p == NULL)
@@ -6972,7 +6972,7 @@ void mask_sequence
 	char			extra;
 	int				numItems;
 	seqpartition*	sp = &_seq->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			b, e, pB, pE, pOffset, pLen;
 	u32				ix;
 
@@ -7127,7 +7127,7 @@ void mask_sequence_keep
 	char			extra;
 	int				numItems;
 	seqpartition*	sp = &_seq->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			b, e, pB, pE, pOffset, pLen;
 	u32				ix;
 
@@ -7500,7 +7500,7 @@ void rev_comp_sequence
 	const u8*		_nucToComplement)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		p;
+	lastz_partition*		p;
 	u32				ix;
 	const u8*		nucToComplement;
 
@@ -7602,7 +7602,7 @@ void backward_sequence
    (seq*			_seq)
 	{
 	seqpartition*	sp = &_seq->partition;
-	partition*		p;
+	lastz_partition*		p;
 	u32				ix;
 
 	if (_seq->fileType == seq_type_csfasta)

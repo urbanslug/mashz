@@ -203,7 +203,7 @@ void print_axt_align
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	unspos			height, width, i, j, startI, startJ, run;
 	u32				opIx;
 	u8*				p, *q;
@@ -422,7 +422,7 @@ void print_axt_match
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1 = seq1->v + pos1;
 	u8*				s2 = seq2->v + pos2;
 	char*			name1, *name2;

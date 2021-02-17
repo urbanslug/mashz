@@ -215,7 +215,7 @@ void print_text_align_align
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	const int		rev1 = ((seq1->revCompFlags & rcf_rev) != 0);
 	const int		rev2 = ((seq2->revCompFlags & rcf_rev) != 0);
 	unspos			extra1, extra2;
@@ -418,7 +418,7 @@ void print_text_align_match
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1, *s2;
 	s8				b1,  b2;
 	unspos			offset1, offset2;
@@ -526,7 +526,7 @@ void print_quantum_match
 	int				quantum2 = (seq2->fileType == seq_type_qdna);
 	qcode*			qCoding1 = seq1->qCoding;
 	qcode*			qCoding2 = seq2->qCoding;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1 = seq1->v + pos1;
 	u8*				s2 = seq2->v + pos2;
 	unspos			offset1, offset2;

@@ -215,7 +215,7 @@ void print_cigar_align
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1 = seq1->v + beg1;
 	u8*				s2 = seq2->v + beg2;
 	unspos			height, width, i, j, prevI, prevJ, run;
@@ -402,7 +402,7 @@ void print_cigar_match
 	{
 	seqpartition*	sp1 = &seq1->partition;
 	seqpartition*	sp2 = &seq2->partition;
-	partition*		part;
+	lastz_partition*		part;
 	u8*				s1 = seq1->v + pos1;
 	u8*				s2 = seq2->v + pos2;
 	char*			name1, *name2, *suff1, *suff2;
