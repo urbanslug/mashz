@@ -186,7 +186,7 @@ static char*       quantum_visual            (int ch);
 //----------
 //
 // Arguments:
-//	score	template[4][4]:		The template containing the scores, with rows
+//	score	templatey[4][4]:		The templatey containing the scores, with rows
 //								.. and columns corresponding to bits_to_nuc[].
 //								.. A row corresponds to a character in sequence
 //								.. 1 and a column corresponds to a character in
@@ -213,7 +213,7 @@ static char*       quantum_visual            (int ch);
 //----------
 
 scoreset* new_dna_score_set
-   (score		template[4][4],
+   (score		templatey[4][4],
 	score		badScore,
 	score		fillScore,
 	score		gapOpen,
@@ -290,9 +290,9 @@ scoreset* new_dna_score_set
 		= ss->sub[ c ]['x'] = badScore;
 		}
 
-	// copy scores from the template
+	// copy scores from the templatey
 
-	if (template != NULL)
+	if (templatey != NULL)
 		{
 		for (r=0 ; r<4 ; r++)
 				for (c=0 ; c<4 ; c++)
@@ -302,10 +302,10 @@ scoreset* new_dna_score_set
 			rowLower = dna_tolower(rowCh);
 			colLower = dna_tolower(colCh);
 
-			ss->sub[rowCh   ][colCh   ] = template[r][c];
-			ss->sub[rowCh   ][colLower] = template[r][c];
-			ss->sub[rowLower][colCh   ] = template[r][c];
-			ss->sub[rowLower][colLower] = template[r][c];
+			ss->sub[rowCh   ][colCh   ] = templatey[r][c];
+			ss->sub[rowCh   ][colLower] = templatey[r][c];
+			ss->sub[rowLower][colCh   ] = templatey[r][c];
+			ss->sub[rowLower][colLower] = templatey[r][c];
 			}
 		}
 

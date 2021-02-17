@@ -293,7 +293,7 @@ extern const double unitScores_thresh;
 
 // prototypes for real routines
 
-scoreset*   new_dna_score_set         (score template[4][4],
+scoreset*   new_dna_score_set         (score templatey[4][4],
                                        score xScore, score fillScore,
                                        score gapOpen, score gapExtend);
 void        free_score_set            (char* id, scoreset* ss);

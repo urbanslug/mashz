@@ -6,7 +6,7 @@ using namespace std;
   fail with the rrror commented out below
  */
 
-// #include "lastz/src/lastz.h"
+#include "lastz/src/lastz.h"
 // extern "C" {
 // #include "lastz/src/lastz.h"
 // }
