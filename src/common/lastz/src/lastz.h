@@ -27,7 +27,6 @@
 #endif
 
 int lastz (int argc, char** argv);
-void hello ();
 
 //----------
 //

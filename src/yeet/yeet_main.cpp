@@ -24,11 +24,6 @@
 
 #include "yeet/include/parse_args.hpp"
 
-extern "C" {
-  #include "common/lastz/src/lastz.h"
-}
-
-
 //External includes
 #include "common/args.hxx"
 
@@ -38,9 +33,6 @@ int main(int argc, char** argv) {
      * for efficient multi-thread execution
      */
     unsetenv((char *)"MALLOC_ARENA_MAX");
-
-    hello();
-    std::cout << "hello\n";
 
     // get our parameters from the command line
     skch::Parameters map_parameters;

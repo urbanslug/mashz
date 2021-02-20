@@ -30,6 +30,9 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
+extern "C" {
+  #include "common/lastz/src/lastz.h"
+}
 
 
 namespace align
@@ -130,6 +133,14 @@ namespace align
        */
       void computeAlignments()
       {
+          string q = param.querySequences.front();
+          string r = param.refSequences.front();
+
+          char* query = const_cast<char*>(q.c_str());
+          char* ref = const_cast<char*>(r.c_str());
+
+          char* lastz_call[] = {"lastz", ref, query, "--format=paf:wfmash"};
+          lastz(4, lastz_call);
 
           uint64_t total_seqs = 0;
           uint64_t total_alignment_length = 0;

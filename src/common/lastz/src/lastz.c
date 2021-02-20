@@ -631,10 +631,6 @@ static void      lastz_show_stats        (FILE* f);
 #define trackTargetRev
 #endif // allowSeveralTargets or trackMemoryUsage or valgrindMemoryCheck
 
-void hello() {
-  printf("Hello\n");
-}
-
 //=== the actual function main() ===
 
 int lastz
