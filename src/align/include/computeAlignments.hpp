@@ -140,7 +140,10 @@ namespace align
           char* ref = const_cast<char*>(r.c_str());
 
           char* lastz_call[] = {"lastz", ref, query, "--format=paf:wfmash"};
+
+          std::cerr << "Performing lastz alignment" << std::endl;
           lastz(4, lastz_call);
+          std::cerr << "Finished performing lastz alignment" << std::endl;
 
           uint64_t total_seqs = 0;
           uint64_t total_alignment_length = 0;
