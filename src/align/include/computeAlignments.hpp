@@ -16,6 +16,7 @@
 #include <cassert>
 #include <thread>
 #include <memory>
+#include <string>
 
 //Own includes
 #include "align/include/align_types.hpp"
@@ -133,18 +134,6 @@ namespace align
        */
       void computeAlignments()
       {
-          string q = param.querySequences.front();
-          string r = param.refSequences.front();
-
-          char* query = const_cast<char*>(q.c_str());
-          char* ref = const_cast<char*>(r.c_str());
-
-          char* lastz_call[] = {"lastz", ref, query, "--format=paf:wfmash"};
-
-          std::cerr << "Performing lastz alignment" << std::endl;
-          lastz(4, lastz_call);
-          std::cerr << "Finished performing lastz alignment" << std::endl;
-
           uint64_t total_seqs = 0;
           uint64_t total_alignment_length = 0;
           uint64_t total_paf_records = 0;
@@ -443,6 +432,7 @@ namespace align
         std::stringstream output;
         // todo:
         // - toggle between wflign and regular alignment at some threshold (in wflign?)
+        /*
         wflign::wavefront::wflign_affine_wavefront(
             output,
             true, // merge alignments
@@ -453,6 +443,60 @@ namespace align
             param.min_identity,
             param.wflambda_min_wavefront_length,
             param.wflambda_max_distance_threshold);
+        */
+
+        // TODO: get filenames from MappingBoundaryRow
+        // Steal the filenames
+        string q = param.querySequences.front();
+        string r = param.refSequences.front();
+
+
+        std::cerr << "[lastz::njagi::debug] "
+                  << q << " "
+                  << currentRecord.qStartPos << " "
+                  << queryLen << " "
+                  << r << " "
+                  << currentRecord.rStartPos << " "
+                  << refLen << " "
+                  << std::endl;
+
+        int queryEndPos = currentRecord.qStartPos + queryLen;
+        int refEndPos = currentRecord.rStartPos + refLen;
+
+        // TODO: check that hsx files exist
+        string qp = q + ".hsx/" +  currentRecord.qId + "[" + to_string(currentRecord.qStartPos) + ".." + to_string(queryEndPos) + "]";
+        char* query = const_cast<char*>(qp.c_str());
+
+        string rp = r + ".hsx/" +  refId + "[" + to_string(currentRecord.rStartPos) + ".." + to_string(refEndPos) + "]";
+        char* target = const_cast<char*>(rp.c_str());
+
+        /*
+          Pass lastz a hsx (hashed sequence index) file as input
+          http://www.bx.psu.edu/~rsharris/lastz/README.lastz-1.04.03.html#fmt_hsx
+
+
+          lastz
+            'A-3105.fa.hsx/gi|568815551:1197321-1201446[500..2000]'
+            'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]'
+            --format=paf:wfmash
+         */
+        char* lastz_call[] = {
+          "lastz",               // 0 can be an empty string no real need for this
+          target,                // 1 the filename of the reference file
+          query,                 // 2 the filename of the query file
+          "--format=paf:wfmash", // 3 output format
+        };
+
+        std::cerr << "[lastz::align::computeAlignments] "
+                  << "Performing lastz alignment "
+                  << std::endl;
+
+        lastz(4, lastz_call);
+
+        std::cerr << "[lastz::align::computeAlignments] "
+                  << "Finished performing lastz alignment"
+                  << std::endl;
+
 
         delete [] queryRegionStrand;
 
