@@ -23,6 +23,8 @@ namespace align
     skch::offset_t rStartPos;           //mapping boundary start offset on ref
     skch::offset_t rEndPos;             //mapping boundary end offset on ref
     skch::strand_t strand;              //mapping strand
+    std::string qFileName;              //query filename
+    std::string refFileName;            //target filename
   };
 
   typedef std::unordered_map <std::string, std::string> refSequenceMap_t;
