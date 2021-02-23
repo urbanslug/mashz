@@ -208,6 +208,10 @@ namespace align
                       std::string mappingRecordLine;
                       MappingBoundaryRow currentRecord;
 
+                      currentRecord.qFileName = fileName;
+                      // does the assumption that there will only be one ref sequence make sense?
+                      currentRecord.refFileName = param.refSequences.front();
+
                       seqiter::for_each_seq_in_file(
                           fileName,
                           [&](const std::string& qSeqId,
@@ -445,17 +449,11 @@ namespace align
             param.wflambda_max_distance_threshold);
         */
 
-        // TODO: get filenames from MappingBoundaryRow
-        // Steal the filenames
-        string q = param.querySequences.front();
-        string r = param.refSequences.front();
-
-
         std::cerr << "[lastz::njagi::debug] "
-                  << q << " "
+                  << currentRecord.qFileName << " "
                   << currentRecord.qStartPos << " "
                   << queryLen << " "
-                  << r << " "
+                  << currentRecord.refFileName << " "
                   << currentRecord.rStartPos << " "
                   << refLen << " "
                   << std::endl;
@@ -464,10 +462,12 @@ namespace align
         int refEndPos = currentRecord.rStartPos + refLen;
 
         // TODO: check that hsx files exist
-        string qp = q + ".hsx/" +  currentRecord.qId + "[" + to_string(currentRecord.qStartPos) + ".." + to_string(queryEndPos) + "]";
+        string qp = currentRecord.qFileName + ".hsx/" +  currentRecord.qId + "["
+          + to_string(currentRecord.qStartPos) + ".." + to_string(queryEndPos) + "]";
         char* query = const_cast<char*>(qp.c_str());
 
-        string rp = r + ".hsx/" +  refId + "[" + to_string(currentRecord.rStartPos) + ".." + to_string(refEndPos) + "]";
+        string rp = currentRecord.refFileName + ".hsx/" +  refId + "["
+          + to_string(currentRecord.rStartPos) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
 
         /*
@@ -475,9 +475,10 @@ namespace align
           http://www.bx.psu.edu/~rsharris/lastz/README.lastz-1.04.03.html#fmt_hsx
 
 
-          lastz
-            'A-3105.fa.hsx/gi|568815551:1197321-1201446[500..2000]'
-            'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]'
+          For example:
+          lastz \
+            'A-3105.fa.hsx/gi|568815551:1197321-1201446[500..2000]' \
+            'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]' \
             --format=paf:wfmash
          */
         char* lastz_call[] = {
