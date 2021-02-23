@@ -500,16 +500,14 @@ namespace align
                   << "Finished performing lastz alignment"
                   << std::endl;
 
+        std::string s;
+        for(size_t i = 0; (i < paf_len || *(s2[i]) != '\0') ; i++)
+          s.push_back(*s2[i]);
 
-        for(size_t i = 0; i < paf_len; i++)
-          printf("%c", *s2[i]);
-        printf("\n");
-
-
-        delete [] queryRegionStrand;
         free(s2);
+        delete [] queryRegionStrand;
 
-        return output.str();
+        return s;
       }
   };
 }
