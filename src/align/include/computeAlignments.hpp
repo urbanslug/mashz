@@ -481,6 +481,8 @@ namespace align
             'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]' \
             --format=paf:wfmash
          */
+        size_t paf_len = 20000000;
+        char **s2 = (char**)malloc(paf_len*sizeof(char));
         char* lastz_call[] = {
           "lastz",               // 0 can be an empty string no real need for this
           target,                // 1 the filename of the reference file
@@ -492,14 +494,20 @@ namespace align
                   << "Performing lastz alignment "
                   << std::endl;
 
-        lastz(4, lastz_call);
+        lastz(s2, 4, lastz_call);
 
         std::cerr << "[lastz::align::computeAlignments] "
                   << "Finished performing lastz alignment"
                   << std::endl;
 
 
+        for(size_t i = 0; i < paf_len; i++)
+          printf("%c", *s2[i]);
+        printf("\n");
+
+
         delete [] queryRegionStrand;
+        free(s2);
 
         return output.str();
       }
