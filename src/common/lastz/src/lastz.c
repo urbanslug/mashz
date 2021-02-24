@@ -705,8 +705,8 @@ char** lastz
 	//////////
 
   char *ptr; // = NULL;
-  size_t len; // = 0;
-  FILE *f = open_memstream(&ptr, &len);
+  size_t output_len; // = 0;
+  FILE *f = open_memstream(&ptr, &output_len);
 
 
 	currParams = NULL;
@@ -2015,11 +2015,12 @@ show_stats_and_clean_up:
 	if (dbgReportFinish)
 		fprintf (stderr, "lastz has finished successfully\n");
 
-  size_t counter = 0;
-  for(; *ptr != '\0'; ptr++, counter++) {
+  size_t counter;
+  size_t maxx = (size_t)output_len;
+  for(counter = 0; counter < maxx; ptr++, counter++) {
     outArray[counter] = ptr;
   }
-  outArray[counter] = '\0';
+  outArray[maxx] = '\0';
 
 
 	return outArray;

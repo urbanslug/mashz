@@ -481,7 +481,7 @@ namespace align
             'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]' \
             --format=paf:wfmash
          */
-        size_t paf_len = 20000000;
+        size_t paf_len = 20000;
         char **s2 = (char**)malloc(paf_len*sizeof(char));
         char* lastz_call[] = {
           "lastz",               // 0 can be an empty string no real need for this
@@ -501,8 +501,10 @@ namespace align
                   << std::endl;
 
         std::string s;
-        for(size_t i = 0; (i < paf_len || *(s2[i]) != '\0') ; i++)
-          s.push_back(*s2[i]);
+        for(int counter = 0; *(*s2) ; (*s2)++, counter++) {
+          std::cout << counter << " ";
+          s.push_back(**s2);
+        }
 
         free(s2);
         delete [] queryRegionStrand;
