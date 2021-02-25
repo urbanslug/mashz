@@ -29,3 +29,6 @@ build
 \#*
 .\#*
 src/common/WFA/bin/
+
+# python
+*.pyc
