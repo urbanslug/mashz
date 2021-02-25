@@ -434,31 +434,6 @@ namespace align
           << ", reference region length= " << refLen << ", edit distance limit= " << editDistanceLimit << std::endl; 
 #endif
 
-        std::stringstream output;
-        // todo:
-        // - toggle between wflign and regular alignment at some threshold (in wflign?)
-        /*
-        wflign::wavefront::wflign_affine_wavefront(
-            output,
-            true, // merge alignments
-            currentRecord.qId, queryRegionStrand, querySize, currentRecord.qStartPos, queryLen,
-            currentRecord.strand != skch::strnd::FWD,
-            refId, refRegion, refSize, currentRecord.rStartPos, refLen,
-            param.wflambda_segment_length,
-            param.min_identity,
-            param.wflambda_min_wavefront_length,
-            param.wflambda_max_distance_threshold);
-        */
-
-        std::cerr << "[lastz::njagi::debug] "
-                  << currentRecord.qFileName << " "
-                  << currentRecord.qStartPos << " "
-                  << queryLen << " "
-                  << currentRecord.refFileName << " "
-                  << currentRecord.rStartPos << " "
-                  << refLen << " "
-                  << std::endl;
-
         int queryEndPos = currentRecord.qStartPos + queryLen;
         int refEndPos = currentRecord.rStartPos + refLen;
 
@@ -470,6 +445,17 @@ namespace align
         string rp = currentRecord.refFileName + ".hsx/" +  refId + "["
           + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
+
+        std::cerr << "[lastz::params::debug]"
+                  << " query "                 << currentRecord.qFileName
+                  << " query id "              << currentRecord.qId
+                  << " query start position "  << currentRecord.qStartPos
+                  << " query length "          << queryLen
+                  << " target "                << currentRecord.refFileName
+                  << " target id "             << refId
+                  << " target start position " << currentRecord.rStartPos
+                  << " target length "         << refLen
+                  << std::endl;
 
         /*
           Pass lastz a hsx (hashed sequence index) file as input

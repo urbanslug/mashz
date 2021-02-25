@@ -2014,6 +2014,7 @@ show_stats_and_clean_up:
 	if (dbgReportFinish)
 		fprintf (stderr, "lastz has finished successfully\n");
 
+  fclose(f);
 
   char* outArray = malloc(((int) output_len * sizeof(char))+sizeof(char));
   size_t counter = 0;
