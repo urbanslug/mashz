@@ -123,7 +123,7 @@ namespace align
 
                 //seqId shouldn't already exist in our table
                 assert(this->refSequences.count(seq_name) == 0);
-                refSequences.emplace(seq_name, seq);
+                refSequences[seq_name] = {seq, fileName};
             });
         }
       }
@@ -210,7 +210,7 @@ namespace align
 
                       currentRecord.qFileName = fileName;
                       // does the assumption that there will only be one ref sequence make sense?
-                      currentRecord.refFileName = param.refSequences.front();
+                      //currentRecord.refFileName = param.refSequences.front();
 
                       seqiter::for_each_seq_in_file(
                           fileName,
@@ -383,6 +383,7 @@ namespace align
           currentRecord.refId = tokens[5];
           currentRecord.rStartPos = std::stoi(tokens[7]);
           currentRecord.rEndPos = std::stoi(tokens[8]);
+          currentRecord.refFileName = this->refSequences[currentRecord.refId].filename;
         }
       }
 
@@ -403,8 +404,8 @@ namespace align
 
         //Define reference substring for this mapping
         const std::string &refId = currentRecord.refId;
-        const char* refRegion = this->refSequences[refId].c_str();
-        const auto& refSize = this->refSequences[refId].size();
+        const char* refRegion = this->refSequences[refId].seq.c_str();
+        const auto& refSize = this->refSequences[refId].seq.size();
         refRegion += currentRecord.rStartPos;
         skch::offset_t refLen = currentRecord.rEndPos - currentRecord.rStartPos;
         assert(refLen <= refSize);
@@ -463,11 +464,11 @@ namespace align
 
         // TODO: check that hsx files exist
         string qp = currentRecord.qFileName + ".hsx/" +  currentRecord.qId + "["
-          + to_string(currentRecord.qStartPos) + ".." + to_string(queryEndPos) + "]";
+          + to_string(currentRecord.qStartPos+1) + ".." + to_string(queryEndPos) + "]";
         char* query = const_cast<char*>(qp.c_str());
 
         string rp = currentRecord.refFileName + ".hsx/" +  refId + "["
-          + to_string(currentRecord.rStartPos) + ".." + to_string(refEndPos) + "]";
+          + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
 
         /*

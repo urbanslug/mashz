@@ -12,10 +12,10 @@
 
 namespace align
 {
-  //Type for map value type used for
-  //L1 stage lookup index
-  struct MappingBoundaryRow
-  {
+//Type for map value type used for
+//L1 stage lookup index
+struct MappingBoundaryRow
+{
     std::string qId;                    //query sequence(s) 
     std::string refId;                  //reference sequence(s)
     skch::offset_t qStartPos;           //mapping boundary start offset on query
@@ -25,9 +25,14 @@ namespace align
     skch::strand_t strand;              //mapping strand
     std::string qFileName;              //query filename
     std::string refFileName;            //target filename
-  };
+};
 
-  typedef std::unordered_map <std::string, std::string> refSequenceMap_t;
+struct RefSequence_t {
+    std::string seq;
+    std::string filename; // to support calling lastz
+};
+typedef std::unordered_map <std::string, RefSequence_t> refSequenceMap_t;
+
 }
 
 #endif
