@@ -26,7 +26,7 @@
 #define global extern
 #endif
 
-char** lastz (char** outArray, int argc, char** argv);
+char* lastz (int argc, char** argv);
 
 //----------
 //
