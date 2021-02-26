@@ -32,3 +32,6 @@ src/common/WFA/bin/
 
 # python
 *.pyc
+
+#testing
+test/
