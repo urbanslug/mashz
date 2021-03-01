@@ -35,6 +35,46 @@ extern "C" {
   #include "common/lastz/src/lastz.h"
 }
 
+class Lastz {
+  std::string targetFilePath;
+  std::string queryFilePath;
+  std::string program_name;
+  std::string format;
+
+public:
+  Lastz(std::string t, std::string q) :
+    targetFilePath (t),
+    queryFilePath (q),
+    program_name (""),
+    format ( "--format=paf:wfmash") {}
+
+  void print_params() {
+    std::cerr << "target: "
+              << targetFilePath
+              << " query: "
+              << queryFilePath
+              << std::endl;
+  }
+
+  std::string align() {
+
+    char* out_str = (char*) malloc(1);
+
+    char* lastz_call[] = {
+      &program_name[0],   // 0 can be an empty string no real need for this
+      &targetFilePath[0], // 1 the filename of the reference file
+      &queryFilePath[0],  // 2 the filename of the query file
+      &format[0],         // 3 output format
+    };
+
+    lastz(out_str, 4, lastz_call);
+    std::string s(out_str);
+    free(out_str);
+
+    return s;
+  }
+};
+
 
 namespace align
 {
@@ -446,7 +486,15 @@ namespace align
           + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
 
-        std::cerr << "[lastz::params::debug]"
+        Lastz l(target, query);
+
+        std::cerr << "[lastz::align::computeAlignments] Performing lastz alignment " << std::endl;
+        l.print_params();
+        std::string s = l.align();
+        std::cerr << "[lastz::align::computeAlignments] Finished performing lastz alignment" << std::endl;
+
+        /*
+          std::cerr << "[lastz::params::debug]"
                   << " query "                 << currentRecord.qFileName
                   << " query id "              << currentRecord.qId
                   << " query start position "  << currentRecord.qStartPos
@@ -457,7 +505,8 @@ namespace align
                   << " target length "         << refLen
                   << std::endl;
 
-        /*
+
+        
           Pass lastz a hsx (hashed sequence index) file as input
           http://www.bx.psu.edu/~rsharris/lastz/README.lastz-1.04.03.html#fmt_hsx
 
@@ -467,7 +516,10 @@ namespace align
             'A-3105.fa.hsx/gi|568815551:1197321-1201446[500..2000]' \
             'A-3105.fa.hsx/gi|568815561:1196951-1200436[641..2000]' \
             --format=paf:wfmash
-         */
+        
+
+
+
         char* lastz_call[] = {
           "lastz",               // 0 can be an empty string no real need for this
           target,                // 1 the filename of the reference file
@@ -478,9 +530,9 @@ namespace align
         std::cerr << "[lastz::align::computeAlignments] Performing lastz alignment " << std::endl;
         char* s2 = lastz(4, lastz_call);
         std::cerr << "[lastz::align::computeAlignments] Finished performing lastz alignment" << std::endl;
-        std::string s(s2);
+         */
 
-        free(s2);
+        // free(s2);
         delete [] queryRegionStrand;
 
         return s;
