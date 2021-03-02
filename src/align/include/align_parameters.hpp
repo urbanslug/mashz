@@ -28,6 +28,8 @@ struct Parameters {
     std::vector<std::string> querySequences;      //query sequence(s)
     std::string mashmapPafFile;                   //mashmap paf mapping file
     std::string pafOutputFile;                    //sam output file name
+
+  std::string lastzParams;                    //lastz params
 };
 
 }

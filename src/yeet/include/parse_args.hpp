@@ -61,6 +61,9 @@ void parse_args(int argc,
     args::Flag show_progress(parser, "show-progress", "write alignment progress to stderr", {'P', "show-progress"});
     args::Flag verbose_debug(parser, "verbose-debug", "enable verbose debugging", {'V', "verbose-debug"});
 
+    // lastz parameters
+    args::ValueFlag<std::string> lastz_params(parser, "lastz", "Param list to pass to lastz", {'z', "lastz"});
+
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help) {
@@ -119,7 +122,7 @@ void parse_args(int argc,
 
     map_parameters.split = !args::get(no_split);
     map_parameters.mergeMappings = !args::get(no_merge);
-    
+
     if (kmer_size) {
         map_parameters.kmerSize = args::get(kmer_size);
     } else {
@@ -183,6 +186,14 @@ void parse_args(int argc,
         align_parameters.wflambda_max_distance_threshold = 100000;
     }
     align_parameters.wflambda_max_distance_threshold /= (align_parameters.wflambda_segment_length / 2); // set relative to WFA matrix
+
+
+    if (lastz_params) {
+      align_parameters.lastzParams = args::get(lastz_params);
+    } else {
+      align_parameters.lastzParams = "";
+    }
+
 
     if (exact_wflambda) {
         // set exact computation of wflambda

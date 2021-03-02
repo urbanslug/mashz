@@ -461,9 +461,10 @@ namespace align
         char* target = const_cast<char*>(rp.c_str());
 
         std::cerr << "target: " << t << " query: " << q << std::endl;
+        // std::cerr << param.lastzParams << std::endl;
 
         char temp[512];
-        sprintf(temp, "lastz %s %s --format=paf:wfmash", target, query);
+        sprintf(temp, "lastz %s %s %s --format=paf:wfmash", target, query, param.lastzParams);
         system((char *)temp);
         std::string s = exec(temp);
 
