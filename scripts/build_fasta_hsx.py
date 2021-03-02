@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python2
 """
 Build a "hashed sequence index" (hsx) file for a fasta file
 -----------------------------------------------------------
