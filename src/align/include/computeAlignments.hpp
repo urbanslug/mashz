@@ -452,16 +452,15 @@ namespace align
         int refEndPos = currentRecord.rStartPos + refLen;
 
         // TODO: check that hsx files exist
-        string qp = currentRecord.qFileName + ".hsx/" +  currentRecord.qId + "["
-          + to_string(currentRecord.qStartPos+1) + ".." + to_string(queryEndPos) + "]";
+        std::string q = currentRecord.qId + "[" + to_string(currentRecord.qStartPos+1) + ".." + to_string(queryEndPos) + "]";
+        string qp = currentRecord.qFileName + ".hsx/" + q;
         char* query = const_cast<char*>(qp.c_str());
 
-        string rp = currentRecord.refFileName + ".hsx/" +  refId + "["
-          + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
+        std::string t = refId +  "["  + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
+        string rp = currentRecord.refFileName + ".hsx/" + t;
         char* target = const_cast<char*>(rp.c_str());
 
-
-        std::cerr << target << " " << query << "\n";
+        std::cerr << "target: " << t << " query: " << q << std::endl;
 
         char temp[512];
         sprintf(temp, "lastz %s %s --format=paf:wfmash", target, query);
