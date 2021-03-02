@@ -1,11 +1,11 @@
+project(lastz VERSION 1.04.12 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 04)
 set(VERSION_SUBMINOR 12)
 set(REVISION_DATE 20210209)
 set(SUBVERSION_REV "")
-
-cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
-project(lastz VERSION 1.04.12)
 
 # set(CMAKE_CXX_STANDARD 11)
 
@@ -25,6 +25,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 #set(LASTZ_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 # set(LASTZ_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+
 
 set(SOURCES
   src/lastz.c
@@ -58,6 +59,7 @@ set(SOURCES
   src/sequences.c
   src/capsule.c)
 
+set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE CXX )
 
 # add_executable(lastz ${SOURCES})
 # set(CMAKE_C_FLAGS "-c ${CMAKE_C_FLAGS}")

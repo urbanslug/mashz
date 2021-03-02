@@ -2016,18 +2016,15 @@ show_stats_and_clean_up:
   fclose(f);
 
   // sizeof(char) is 1
+  /*
   out_str = realloc(out_str, output_len+1);
   size_t counter = 0;
   for(; *ptr; ptr++, counter++) {
     out_str[counter] = *ptr;
   }
   out_str[counter] = '\0';
-
-  // free(outArray);
-
-  // char* k = "";
-
-	// return k; // return outArray;
+  */
+  // return out_str;
 	}
 
 //----------

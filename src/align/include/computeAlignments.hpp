@@ -31,50 +31,7 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
-extern "C" {
-  #include "common/lastz/src/lastz.h"
-}
-
-class Lastz {
-  std::string targetFilePath;
-  std::string queryFilePath;
-  std::string program_name;
-  std::string format;
-  char* out_str;
-
-public:
-  Lastz(std::string t, std::string q) :
-    targetFilePath (t),
-    queryFilePath (q),
-    program_name (""),
-    format ( "--format=paf:wfmash") {
-    out_str = (char*) malloc(1);
-  }
-
-  ~Lastz() {
-    free(out_str);
-  }
-
-  void print_params() {
-    std::cerr << "target: " << targetFilePath << " query: " << queryFilePath
-              << std::endl;
-  }
-
-  std::string align() {
-    // The order of this array matters
-    char* lastz_call[] = {
-      &program_name[0],   // 0 can be an empty string no real need for this
-      &targetFilePath[0], // 1 the filename of the reference file
-      &queryFilePath[0],  // 2 the filename of the query file
-      &format[0],         // 3 output format
-    };
-
-    lastz(out_str, 4, lastz_call);
-    std::string s(out_str);
-
-    return s;
-  }
-};
+#include "common/lastz/src/lastz.h"
 
 
 namespace align
@@ -487,13 +444,20 @@ namespace align
           + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
 
-        Lastz l(target, query);
+        char* k = "";
+
+        /*
+        char* k =  (char*) malloc(1);
+        Lastz l(target, query, k);
 
         std::cerr << "[lastz::align::computeAlignments] Performing lastz alignment " << std::endl;
         l.print_params();
-        std::string s = l.align();
+        l.align();
         std::cerr << "[lastz::align::computeAlignments] Finished performing lastz alignment" << std::endl;
+        */
+        std::string s(k);
         delete [] queryRegionStrand;
+        free(k);
 
         return s;
       }

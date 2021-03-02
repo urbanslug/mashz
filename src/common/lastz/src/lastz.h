@@ -18,6 +18,8 @@
 #include "masking.h"			// dynamic masking stuff
 #include "diag_hash.h"			// diagonals hashing stuff
 
+#include <string>
+
 // establish ownership of global variables
 
 #ifdef lastz_owner
@@ -485,7 +487,48 @@ void finish_one_strand    (seq* target, u8* targetRev,
                            tback* traceback, census* targCensus);
 void split_anchors        (int id);
 void swap_anchor_sets     (void);
+
 void print_job_header     (void);
+
+// ---------
+//
+// C++ classes
+//
+//----------
+class Lastz {
+  std::string targetFilePath;
+  std::string queryFilePath;
+  std::string program_name;
+  std::string format;
+  char*       out_str;
+
+ public:
+ Lastz(std::string t, std::string q, char* k) :
+  targetFilePath (t),
+    queryFilePath (q),
+    program_name (""),
+    format ( "--format=paf:wfmash"),
+    out_str(k) {
+  }
+
+  void print_params() {
+    std::cerr << "target: " << targetFilePath
+              << " query: " << queryFilePath
+              << std::endl;
+  }
+
+  void align() {
+    // The order of this array matters
+    char* lastz_call[] = {
+      &program_name[0],   // 0 can be an empty string no real need for this
+      &targetFilePath[0], // 1 the filename of the reference file
+      &queryFilePath[0],  // 2 the filename of the query file
+      &format[0],         // 3 output format
+    };
+
+    lastz(out_str, 4, lastz_call);
+  }
+};
 
 //----------
 //
@@ -499,6 +542,7 @@ global struct
 	{
 	float runTime;
 	} lastzStats;
+
 
 // stats macros
 
