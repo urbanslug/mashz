@@ -18,6 +18,11 @@
 #include <memory>
 #include <string>
 
+#include <cstdio>
+#include <iostream>
+#include <stdexcept>
+#include <array>
+
 //Own includes
 #include "align/include/align_types.hpp"
 #include "align/include/align_parameters.hpp"
@@ -31,51 +36,19 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
-extern "C" {
-  #include "common/lastz/src/lastz.h"
+// adapted from https://stackoverflow.com/a/478960
+std::string exec(char* cmd) {
+  std::array<char, 128> buffer;
+  std::string result;
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  if (!pipe) {
+    throw std::runtime_error("popen() failed!");
+  }
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    result += buffer.data();
+  }
+  return result;
 }
-
-class Lastz {
-  std::string targetFilePath;
-  std::string queryFilePath;
-  std::string program_name;
-  std::string format;
-  char* out_str;
-
-public:
-  Lastz(std::string t, std::string q) :
-    targetFilePath (t),
-    queryFilePath (q),
-    program_name (""),
-    format ( "--format=paf:wfmash") {
-    out_str = (char*) malloc(1);
-  }
-
-  ~Lastz() {
-    free(out_str);
-  }
-
-  void print_params() {
-    std::cerr << "target: " << targetFilePath << " query: " << queryFilePath
-              << std::endl;
-  }
-
-  std::string align() {
-    // The order of this array matters
-    char* lastz_call[] = {
-      &program_name[0],   // 0 can be an empty string no real need for this
-      &targetFilePath[0], // 1 the filename of the reference file
-      &queryFilePath[0],  // 2 the filename of the query file
-      &format[0],         // 3 output format
-    };
-
-    lastz(out_str, 4, lastz_call);
-    std::string s(out_str);
-
-    return s;
-  }
-};
-
 
 namespace align
 {
@@ -487,12 +460,14 @@ namespace align
           + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
         char* target = const_cast<char*>(rp.c_str());
 
-        Lastz l(target, query);
 
-        std::cerr << "[lastz::align::computeAlignments] Performing lastz alignment " << std::endl;
-        l.print_params();
-        std::string s = l.align();
-        std::cerr << "[lastz::align::computeAlignments] Finished performing lastz alignment" << std::endl;
+        std::cerr << target << " " << query << "\n";
+
+        char temp[512];
+        sprintf(temp, "lastz %s %s --format=paf:wfmash", target, query);
+        system((char *)temp);
+        std::string s = exec(temp);
+
         delete [] queryRegionStrand;
 
         return s;
