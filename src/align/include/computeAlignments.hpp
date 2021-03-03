@@ -460,12 +460,11 @@ namespace align
         string rp = currentRecord.refFileName + ".hsx/" + t;
         char* target = const_cast<char*>(rp.c_str());
 
-        std::cerr << "target: " << t << " query: " << q << std::endl;
-        // std::cerr << param.lastzParams << std::endl;
+        //std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
 
         char temp[512];
-        sprintf(temp, "lastz %s %s %s --format=paf:wfmash", target, query, param.lastzParams);
-        system((char *)temp);
+        sprintf(temp, "lastz %s %s %s --format=paf:wfmash", &target[0], &query[0], &param.lastzParams[0]);
+        //fprintf (stderr, "[align::lastz::computeAlignments] %s\n", temp);
         std::string s = exec(temp);
 
         delete [] queryRegionStrand;

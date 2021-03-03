@@ -190,8 +190,6 @@ void parse_args(int argc,
 
     if (lastz_params) {
       align_parameters.lastzParams = args::get(lastz_params);
-    } else {
-      align_parameters.lastzParams = "";
     }
 
 
