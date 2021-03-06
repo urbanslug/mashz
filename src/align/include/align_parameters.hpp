@@ -29,7 +29,7 @@ struct Parameters {
     std::string mashmapPafFile;                   //mashmap paf mapping file
     std::string pafOutputFile;                    //sam output file name
 
-  std::string lastzParams;                    //lastz params
+    std::string lastzParams;                      //lastz params
 };
 
 }

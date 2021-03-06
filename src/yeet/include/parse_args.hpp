@@ -63,6 +63,7 @@ void parse_args(int argc,
 
     // lastz parameters
     args::ValueFlag<std::string> lastz_params(parser, "lastz", "Param list to pass to lastz", {'z', "lastz"});
+    args::ValueFlag<int> lastz_filter_id(parser, "a", "have lastz filter out mappings that are below the supplied similarity threshold", {'a', "lastz-filter-identity"});
 
     try {
         parser.ParseCLI(argc, argv);
@@ -192,6 +193,9 @@ void parse_args(int argc,
       align_parameters.lastzParams = args::get(lastz_params);
     }
 
+    if (lastz_filter_id) {
+      align_parameters.lastzParams += " --filter=identity:" + std::to_string(args::get(lastz_filter_id));
+    }
 
     if (exact_wflambda) {
         // set exact computation of wflambda
