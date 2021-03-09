@@ -63,7 +63,7 @@ void parse_args(int argc,
 
     // lastz parameters
     args::ValueFlag<std::string> lastz_params(parser, "lastz", "Param list to pass to lastz", {'z', "lastz"});
-    args::ValueFlag<int> lastz_filter_id(parser, "a", "have lastz filter out mappings that are below the supplied similarity threshold", {'a', "lastz-filter-identity"});
+    args::ValueFlag<int> lastz_filter_id(parser, "a", "have lastz filter out mappings that are below the supplied similarity threshold. Corresponds to --filter=identity:<value> in lastz", {'a', "align-pct-id"});
 
     try {
         parser.ParseCLI(argc, argv);

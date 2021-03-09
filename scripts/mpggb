@@ -31,7 +31,7 @@ poa_params="1,4,6,2,26,1"
 do_viz=false
 do_layout=false
 threads=1
-mapper=edyeet
+mapper=mashz
 no_merge_segments=false
 do_stats=false
 exclude_delim=false
@@ -168,40 +168,86 @@ then
     exit
 fi
 
+# Parameter expansion http://mywiki.wooledge.org/BashFAQ/073
 target_filename=${target_fasta##*/}
 target_filestub=${target_filename%.*}
 query_filename=${query_fasta##*/}
 query_filestub=${query_filename%.*}
-out_filestub="$target_filestub_$query_filestub"
+out_filestub="${target_filestub}_${query_filestub}"
 
-mashz_params="mashz_p${map_pct_id}_s${segment_length}_n${n_secondary}_a${align_pct_id}"
-seqwish_params="seqwish_k${min_match_length}"
+mapper_letter='E'
+if [[ "$mapper" == "mashz" ]];
+then
+    mapper_letter='Z'
+fi
+
+
+prefix_paf=mpggb-$mapper_letter-s$segment_length-l$block_length-p$map_pct_id-n$n_secondary-a$align_pct_id-K$mash_kmer
+
+# mashz_params="mashz_p${map_pct_id}_s${segment_length}_n${n_secondary}_a${align_pct_id}_l${block_length}"
+
+if [[ $no_merge_segments == true ]];
+then
+    merge_cmd=-M
+    prefix_paf="$prefix_paf"-M
+fi
+
+if [[ $no_splits == true ]];
+then
+    split_cmd=-N
+    prefix_paf="$prefix_paf"-N
+fi
+
+if [[ $exclude_delim != false ]];
+then
+    exclude_cmd="-Y "$exclude_delim
+else
+    exclude_cmd=-X
+fi
+
+if [[ $mapper == "edyeet" ]];
+then
+    prefix_paf="$prefix_paf"
+elif [[ $mapper == "wfmash" ]];
+then
+    prefix_paf="$prefix_paf"
+fi
+
+mashz_params=$prefix_paf
+
+# Graph induction
+prefix_seqwish="$prefix_paf".seqwish-k$min_match_length-B$transclose_batch
+
+seqwish_params=$prefix_seqwish
 bandage_params="bandage_w${bandage_node_width}"
 odgi_viz_x="1920"
 odgi_viz_y="1080"
 
 mashz_alignment="$output_dir"/"${out_filestub}.${mashz_params}.paf"
+dotplot_file="$output_dir"/"${out_filestub}.${mashz_params}.gp"
+dotplot_png="$output_dir"/"${out_filestub}.${mashz_params}.dotplot.png"
 
-seqwish_gfa="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.gfa"
 
-odgi_graph="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.odgi.og"
-sorted_odgi_graph="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.odgi.sorted.og"
-odgi_gfa="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.odgi.gfa"
+seqwish_gfa="$output_dir"/"${out_filestub}.${seqwish_params}.gfa"
 
-odgi_viz="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.sorted.odgi_viz.png"
-odgi_stats="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.odgi.stats.txt"
+odgi_graph="$output_dir"/"${out_filestub}.${seqwish_params}.odgi.og"
+sorted_odgi_graph="$output_dir"/"${out_filestub}.${seqwish_params}.odgi.sorted.og"
+odgi_gfa="$output_dir"/"${out_filestub}.${seqwish_params}.odgi.gfa"
 
-bandage_viz="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.${bandage_params}.sorted.bandage_viz.png"
+odgi_viz="$output_dir"/"${out_filestub}.${seqwish_params}.sorted.odgi_viz.png"
+odgi_stats="$output_dir"/"${out_filestub}.${seqwish_params}.odgi.stats.txt"
 
-dotplot_file="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.gp"
-dotplot_png="$output_dir"/"${out_filestub}.${mashz_params}.${seqwish_params}.dotplot.png"
+bandage_viz="$output_dir"/"${out_filestub}.${seqwish_params}.${bandage_params}.sorted.bandage_viz.png"
 
 current_dir="$(dirname "$(readlink -f "$0")")"
+
 
 printf "\n------------------ mashz align ---------------\n"
 mashz $target_fasta $query_fasta \
       -X \
+      $merge_cmd\
       -t $threads \
+      -l $block_length \
       -s $segment_length \
       -n $n_secondary \
       -p $map_pct_id \
@@ -213,7 +259,7 @@ printf "\n------------ induce variation graph ----------\n"
 seqwish -t $threads \
         -P \
         -k $min_match_length \
-        -s $target_fasta \
+        -s <(cat $target_fasta $query_fasta) \
         -p $mashz_alignment \
         -g $seqwish_gfa
 
@@ -245,8 +291,10 @@ odgi view \
      > $odgi_gfa
 
 printf "\n----------------- Generate bandage viz ------------------\n"
-Bandage image \
-        $odgi_gfa \
+
+QT_QPA_PLATFORM=wayland \
+               Bandage image \
+               $odgi_gfa \
         $bandage_viz \
         --nodewidth $bandage_node_width
 
