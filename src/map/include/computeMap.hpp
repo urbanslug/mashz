@@ -297,7 +297,7 @@ namespace skch
         output->qseqLen = input->len;
         bool split_mapping = true;
 
-        if(! param.split || input->len <= param.block_length_min * 2)
+        if(! param.split || input->len < param.segLength || input->len <= param.block_length_min * 2)
         {
           QueryMetaData <MinVec_Type> Q;
           Q.seq = &(input->seq)[0u];
@@ -380,18 +380,24 @@ namespace skch
           }
         }
 
-        //filter mappings best over query sequence axis
-        if(param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE)
-        {
-            skch::Filter::query::filterMappings(output->readMappings,
-                                                (input->len < param.segLength ?
-                                                 param.shortSecondaryToKeep
-                                                 : param.secondaryToKeep));
-        }
-
         // remove short merged mappings when we are mapping split
-        if (split_mapping) {
+        if (split_mapping && param.mergeMappings) {
+            //filter mappings best over query sequence axis
+            if (param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE) {
+                skch::Filter::query::filterMappings(output->readMappings,
+                                                    (input->len < param.segLength ?
+                                                     param.shortSecondaryToKeep
+                                                     : param.secondaryToKeep));
+            }
             this->filterShortMappings(output->readMappings);
+        } else {
+            // apply trivial indexed filtering
+            if (param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE) {
+                skch::Filter::query::filterUnmergedMappings(output->readMappings,
+                                                            (input->len < param.segLength ?
+                                                             param.shortSecondaryToKeep
+                                                             : param.secondaryToKeep));
+            }
         }
 
         // remove self-mode don't-maps
