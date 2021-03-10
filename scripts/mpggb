@@ -13,7 +13,7 @@ align_pct_id=0
 n_secondary=false
 segment_length=false
 block_length=false
-lastz_params=false
+lastz_params=""
 mash_kmer=16
 min_match_length=19
 transclose_batch=1000000
@@ -65,7 +65,7 @@ while true ; do
         -K|--mash-kmer) mash_kmer=$2 ; shift 2 ;;
         -W|--wfmash) mapper=wfmash ; shift ;;
         -Y|--exclude-delim) exclude_delim=$2 ; shift 2 ;;
-        -z|--lastz-params) target_fasta=$2 ; shift 2 ;;
+        -z|--lastz-params) lastz_params=$2 ; shift 2 ;;
         -k|--min-match-length) min_match_length=$2 ; shift 2 ;;
         -B|--transclose-batch) transclose_batch=$2 ; shift 2 ;;
         -w|--block-weight-max) max_block_weight=$2 ; shift 2 ;;
@@ -183,6 +183,9 @@ fi
 
 
 prefix_paf=mpggb-$mapper_letter-s$segment_length-l$block_length-p$map_pct_id-n$n_secondary-a$align_pct_id-K$mash_kmer
+# add lastz params and replace spaces with underscores
+shopt -s extglob
+prefix_paf="${prefix_paf}-z${lastz_params//+([[:space:]-])/_}"
 
 # mashz_params="mashz_p${map_pct_id}_s${segment_length}_n${n_secondary}_a${align_pct_id}_l${block_length}"
 
@@ -241,25 +244,79 @@ bandage_viz="$output_dir"/"${out_filestub}.${seqwish_params}.${bandage_params}.s
 
 current_dir="$(dirname "$(readlink -f "$0")")"
 
+seqwish_fasta=$query_fasta
+if [[ $target_fasta != $query_fasta ]]
+then
+    seqwish_fasta=<(cat $target_fasta $query_fasta)
+fi
+
+
+# log it
+date=`date "+%m-%d-%Y_%H:%M:%S"`
+run_id="$mashz_params".$date
+
+if [[ $output_dir == "." ]]
+then
+    mkdir $run_id
+    cd $run_id
+fi
+
+log_file="$mashz_params".$date.log
+echo "mashz $target_fasta $query_fasta \
+-X \
+$merge_cmd \
+-t $threads \
+-l $block_length \
+-s $segment_length \
+-n $n_secondary \
+-p $map_pct_id \
+-a $align_pct_id \
+-z \"${lastz_params}\"
+
+seqwish -t $threads \
+-P \
+-k $min_match_length \
+-s $seqwish_fasta \
+-p $mashz_alignment \
+-g $seqwish_gfa
+
+odgi build \
+-g $seqwish_gfa \
+-o $odgi_graph
+
+odgi sort \
+-p Ygs \
+-i $odgi_graph \
+-o $sorted_odgi_graph
+" > $log_file
+
+
 
 printf "\n------------------ mashz align ---------------\n"
-mashz $target_fasta $query_fasta \
+mashz $target_fasta \
+      $query_fasta \
       -X \
-      $merge_cmd\
+      $merge_cmd \
       -t $threads \
       -l $block_length \
       -s $segment_length \
       -n $n_secondary \
       -p $map_pct_id \
       -a $align_pct_id \
-      --lastz "--gfextend --chain --gapped" \
+      -z "${lastz_params}" \
       > $mashz_alignment
+
+printf "\n-------- generate plot of the alignment -----\n"
+${current_dir}/paf2dotplot png large $mashz_alignment
+mv out.gp $dotplot_file
+gnuplot $dotplot_file
+mv out.png $dotplot_png
 
 printf "\n------------ induce variation graph ----------\n"
 seqwish -t $threads \
         -P \
         -k $min_match_length \
-        -s <(cat $target_fasta $query_fasta) \
+        -s $seqwish_fasta \
         -p $mashz_alignment \
         -g $seqwish_gfa
 
@@ -291,19 +348,13 @@ odgi view \
      > $odgi_gfa
 
 printf "\n----------------- Generate bandage viz ------------------\n"
-
-QT_QPA_PLATFORM=wayland \
-               Bandage image \
-               $odgi_gfa \
+Bandage image \
+        $odgi_gfa \
         $bandage_viz \
         --nodewidth $bandage_node_width
 
-printf "\n-------- generate plot from the alignment -----\n"
-${current_dir}/paf2dotplot png large $mashz_alignment
-mv out.gp $dotplot_file
-gnuplot $dotplot_file
-mv out.png $dotplot_png
 
+# move gnuplot stuff
 if [[ $output_dir != "." ]]
 then
 mv out* $output_dir
