@@ -261,7 +261,7 @@ then
     cd $run_id
 fi
 
-log_file="$mashz_params".$date.log
+log_file="$mashz_params".$date.log.txt
 echo "mashz $target_fasta $query_fasta \
 -X \
 $merge_cmd \
