@@ -6,7 +6,7 @@ set -eo pipefail
 target_fasta=false
 query_fasta=false
 output_dir="."
-bandage_node_width=500
+bandage_node_width=false
 resume=false
 map_pct_id=false
 align_pct_id=0
@@ -46,7 +46,7 @@ fi
 
 # read the options
 cmd=$0" "$@
-TEMP=`getopt -o i:q:o:p:a:n:s:l:K:k:B:w:j:P:e:t:vLhWMSY:z:G:C:I:R:Nr:m --long input-fasta:,query-fasta:,output-dir:,map-pct-id:,align-pct-id:,n-secondary:,segment-length:,block-length-min:,mash-kmer:,min-match-length:,transclose-batch:,block-weight-max:,path-jump-max:,subpath-min:,edge-jump-max:,threads:,do-viz,do-layout,help,wfmash,no-merge-segments,do-stats,exclude-delim:,lastz-params:,poa-length-max:,poa-params:,consensus-spec:,block-id-min:,ratio-contain:,no-splits,resume,multiqc -n 'pggb' -- "$@"`
+TEMP=`getopt -o i:q:o:p:a:b:n:s:l:K:k:B:w:j:P:e:t:vLhWMSY:z:G:C:I:R:Nr:m --long input-fasta:,query-fasta:,output-dir:,bandage-node-width:,map-pct-id:,align-pct-id:,n-secondary:,segment-length:,block-length-min:,mash-kmer:,min-match-length:,transclose-batch:,block-weight-max:,path-jump-max:,subpath-min:,edge-jump-max:,threads:,do-viz,do-layout,help,wfmash,no-merge-segments,do-stats,exclude-delim:,lastz-params:,poa-length-max:,poa-params:,consensus-spec:,block-id-min:,ratio-contain:,no-splits,resume,multiqc -n 'pggb' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -68,6 +68,7 @@ while true ; do
         -z|--lastz-params) lastz_params=$2 ; shift 2 ;;
         -k|--min-match-length) min_match_length=$2 ; shift 2 ;;
         -B|--transclose-batch) transclose_batch=$2 ; shift 2 ;;
+        -b|--bandage-node-width) bandage_node_width=$2 ; shift 2 ;;
         -w|--block-weight-max) max_block_weight=$2 ; shift 2 ;;
         -I|--block-id-min) block_id_min=$2 ; shift 2 ;;
         -R|--ratio-contain) ratio_contain=$2 ; shift 2 ;;
@@ -288,6 +289,11 @@ odgi sort \
 -p Ygs \
 -i $odgi_graph \
 -o $sorted_odgi_graph
+
+Bandage image \
+$odgi_gfa \
+$bandage_viz \
+--nodewidth $bandage_node_width
 " > $log_file
 
 
