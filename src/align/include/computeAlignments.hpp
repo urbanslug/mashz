@@ -460,7 +460,7 @@ namespace align
         string rp = currentRecord.refFileName + ".hsx/" + t;
         char* target = const_cast<char*>(rp.c_str());
 
-        std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
+        //std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
 
         char temp[512];
         sprintf(temp, "lastz %s %s %s --format=paf:wfmash", &target[0], &query[0], &param.lastzParams[0]);
