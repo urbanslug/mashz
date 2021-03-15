@@ -65,11 +65,11 @@ $ mashmap-align -s ref.fa -q seq.fq --mappingFile mashmap.out --pi 80 [OPTIONS]"
    */
   void printCmdOptions(align::Parameters &parameters)
   {
-    std::cerr << "[wfmash::align] Reference = " << parameters.refSequences << std::endl;
-    std::cerr << "[wfmash::align] Query = " << parameters.querySequences << std::endl;
-    std::cerr << "[wfmash::align] Mapping file = " << parameters.mashmapPafFile << std::endl;
-    std::cerr << "[wfmash::align] Alignment identity cutoff = " << parameters.min_identity << "\%" << std::endl;
-    std::cerr << "[wfmash::align] Alignment output file = " << parameters.pafOutputFile << std::endl;
+    std::cerr << "[mashz::align] Reference = " << parameters.refSequences << std::endl;
+    std::cerr << "[mashz::align] Query = " << parameters.querySequences << std::endl;
+    std::cerr << "[mashz::align] Mapping file = " << parameters.mashmapPafFile << std::endl;
+    std::cerr << "[mashz::align] Alignment identity cutoff = " << parameters.min_identity << "\%" << std::endl;
+    std::cerr << "[mashz::align] Alignment output file = " << parameters.pafOutputFile << std::endl;
   }
 
   /**

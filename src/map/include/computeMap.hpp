@@ -139,7 +139,7 @@ namespace skch
                 }
             } else {
                 // if not, warn that this is expensive
-                std::cerr << "[wfmash::skch::Map::mapQuery] WARNING, no .fai index found for " << fileName << ", reading file to sum sequence length (slow)" << std::endl;
+                std::cerr << "[mashz::skch::Map::mapQuery] WARNING, no .fai index found for " << fileName << ", reading file to sum sequence length (slow)" << std::endl;
                 seqiter::for_each_seq_in_file(
                     fileName,
                     [&](const std::string& seq_name,
@@ -150,13 +150,13 @@ namespace skch
             }
         }
 
-        progress_meter::ProgressMeter progress(total_seq_length, "[wfmash::skch::Map::mapQuery] mapped");
+        progress_meter::ProgressMeter progress(total_seq_length, "[mashz::skch::Map::mapQuery] mapped");
 
         for(const auto &fileName : param.querySequences)
         {
 
 #ifdef DEBUG
-            std::cerr << "[wfmash::skch::Map::mapQuery] mapping reads in " << fileName << std::endl;
+            std::cerr << "[mashz::skch::Map::mapQuery] mapping reads in " << fileName << std::endl;
 #endif
 
             seqiter::for_each_seq_in_file(
@@ -218,7 +218,7 @@ namespace skch
 
         progress.finish();
 
-        std::cerr << "[wfmash::skch::Map::mapQuery] "
+        std::cerr << "[mashz::skch::Map::mapQuery] "
                   << "count of mapped reads = " << totalReadsMapped
                   << ", reads qualified for mapping = " << totalReadsPickedForMapping
                   << ", total input reads = " << seqCounter
@@ -505,7 +505,7 @@ namespace skch
           CommonFunc::addMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter);
 
 #ifdef DEBUG
-          std::cerr << "[wfmash::skch::Map:doL1Mapping] read id " << Q.seqCounter << ", minimizer count = " << Q.minimizerTableQuery.size() << "\n";
+          std::cerr << "[mashz::skch::Map:doL1Mapping] read id " << Q.seqCounter << ", minimizer count = " << Q.minimizerTableQuery.size() << "\n";
 #endif
 
           ///2. Find the hits in the reference, pick 's' unique minimizers as seeds, 
@@ -548,7 +548,7 @@ namespace skch
           this->computeL1CandidateRegions(Q, seedHitsL1, minimumHits, l1Mappings);
 
 #ifdef DEBUG
-          std::cerr << "[wfmash::skch::Map:doL1Mapping] read id " << Q.seqCounter << ", Count of L1 hits in the reference = " << seedHitsL1.size() << ", minimum hits required for a candidate = " << minimumHits << ", Count of L1 candidate regions = " << l1Mappings.size() << "\n";
+          std::cerr << "[mashz::skch::Map:doL1Mapping] read id " << Q.seqCounter << ", Count of L1 hits in the reference = " << seedHitsL1.size() << ", minimum hits required for a candidate = " << minimumHits << ", Count of L1 candidate regions = " << l1Mappings.size() << "\n";
 #endif
 
         }
@@ -680,7 +680,7 @@ namespace skch
           }
 
 #ifdef DEBUG
-          std::cerr << "[wfmash::skch::Map:doL2Mapping] read id " << Q.seqCounter << ", count of L1 candidates= " << l1Mappings.size() << ", count of L2 candidates= " << l2Mappings.size() << std::endl;
+          std::cerr << "[mashz::skch::Map:doL2Mapping] read id " << Q.seqCounter << ", count of L1 candidates= " << l1Mappings.size() << ", count of L2 candidates= " << l2Mappings.size() << std::endl;
 #endif
         }
 

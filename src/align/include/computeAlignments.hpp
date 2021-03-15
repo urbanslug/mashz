@@ -188,7 +188,7 @@ namespace align
                   });
           }
 
-          progress_meter::ProgressMeter progress(total_alignment_length, "[wfmash::align::computeAlignments] aligned");
+          progress_meter::ProgressMeter progress(total_alignment_length, "[mashz::align::computeAlignments] aligned");
 
           // input atomic queue
           seq_atomic_queue_t seq_queue;
@@ -364,7 +364,7 @@ namespace align
           writer.join();
 
           progress.finish();
-          std::cerr << "[wfmash::align::computeAlignments] "
+          std::cerr << "[mashz::align::computeAlignments] "
                     << "count of mapped reads = " << total_seqs
                     << ", total aligned bp = " << total_alignment_length << std::endl;
 
