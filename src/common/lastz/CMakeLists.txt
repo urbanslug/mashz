@@ -7,8 +7,6 @@ set(SUBVERSION_REV "")
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(lastz VERSION 1.04.12)
 
-# set(CMAKE_CXX_STANDARD 11)
-
 set(CMAKE_C_FLAGS "-O3 -Wall -Wextra -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
                    -DVERSION_MAJOR=${VERSION_MAJOR} \
                    -DVERSION_MAJOR=${VERSION_MAJOR} \
@@ -17,14 +15,9 @@ set(CMAKE_C_FLAGS "-O3 -Wall -Wextra -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE 
                    -DREVISION_DATE=${REVISION_DATE} \
                    -DSUBVERSION_REV=${SUBVERSION_REV}")
 
-# set(ENV{LASTZ_INSTALL} ${CMAKE_BINARY_DIR}/bin)
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-#set(LASTZ_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
-# set(LASTZ_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 
 set(SOURCES
   src/lastz.c
@@ -58,13 +51,7 @@ set(SOURCES
   src/sequences.c
   src/capsule.c)
 
-
-# add_executable(lastz ${SOURCES})
-# set(CMAKE_C_FLAGS "-c ${CMAKE_C_FLAGS}")
-
 add_library(lastz ${SOURCES})
-set_target_properties(lastz PROPERTIES OUTPUT_NAME "lastz")
+target_link_libraries(lastz m)
 
 target_link_libraries(lastz m)
-# execute_process (COMMAND make)
-# execute_process (COMMAND make install)

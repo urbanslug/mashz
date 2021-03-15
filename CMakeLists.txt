@@ -10,29 +10,24 @@ set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are use
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mcx16 -march=native -g -fpermissive")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mcx16 -march=native -g -fpermissive")
-# set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
-# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-#add_subdirectory(src/common/wflign/deps/WFA EXCLUDE_FROM_ALL)
-#add_subdirectory(src/common/wflign/deps/wflambda EXCLUDE_FROM_ALL)
+
 add_subdirectory(src/common/wflign EXCLUDE_FROM_ALL)
 
-# include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 add_subdirectory(src/common/lastz EXCLUDE_FROM_ALL)
 
-add_executable(mashz
-  src/yeet/yeet_main.cpp) #$(CXX) $(CXXFLAGS) $(CPPFLAGS) -Lsrc/lastz/build/lib -Lsrc/common/wflign/build/lib -Isrc/common/wflign/deps -Isrc/common/wflign/deps/wflambda -Isrc/common/wflign/deps/patchmap -Isrc/common $(SOURCE_1) -o mashz @mathlib@ -lstdc++ -lz -lm -lpthread -ledlib -lwflambda -lwflign -llastz
+add_executable(mashz src/yeet/yeet_main.cpp)
 
 target_include_directories(mashz PRIVATE
   src
-  src/common/wflign/deps
   src/common/lastz
+  src/common/wflign/deps
   src/common/wflign/deps/wflambda
   src/common/wflign/deps/patchmap
   src/common/wflign/deps/WFA
@@ -43,10 +38,10 @@ target_link_libraries(mashz
   gslcblas
   m
   pthread
+  lastz
   libwflign_static
   edlib
   wflambda
-  lastz
   wfa
   z)
 
