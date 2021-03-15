@@ -1,11 +1,11 @@
 /**
  * @file    computeAlignments.hpp
- * @brief   logic for generating alignments when given mashmap 
+ * @brief   logic for generating alignments when given mashmap
  *          mappings as input
  * @author  Chirag Jain <cjain7@gatech.edu>
  */
 
-#ifndef COMPUTE_ALIGNMENTS_HPP 
+#ifndef COMPUTE_ALIGNMENTS_HPP
 #define COMPUTE_ALIGNMENTS_HPP
 
 #include <vector>
@@ -36,6 +36,12 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
+
+extern "C" {
+#include "common/lastz/src/lastz.h"
+}
+
+
 // adapted from https://stackoverflow.com/a/478960
 std::string exec(char* cmd) {
   std::array<char, 128> buffer;
@@ -48,6 +54,15 @@ std::string exec(char* cmd) {
     result += buffer.data();
   }
   return result;
+}
+
+std::string fork_lastz(char** cmd) {
+  fork();
+
+  lastz(4, cmd);
+
+  std::string s;
+  return s;
 }
 
 namespace align
@@ -249,7 +264,7 @@ namespace align
 
                               if( !mappingRecordLine.empty() ) {
                                   this->parseMashmapRow(mappingRecordLine, currentRecord);
-                              
+
                                   //Check if mapping query id matches current query sequence id
                                   if(currentRecord.qId == qSeqId)
                                   {
@@ -257,12 +272,12 @@ namespace align
                                       //continue;
                                       auto q = new seq_record_t(currentRecord, mappingRecordLine, seq);
                                       seq_queue.push(q);
-                                  
+
                                       //Check if more mappings have same query sequence id
                                       while(std::getline(mappingListStream, mappingRecordLine))
                                       {
                                           this->parseMashmapRow(mappingRecordLine, currentRecord);
-                                          
+
                                           if(currentRecord.qId != qSeqId)
                                           {
                                               //Break the inner loop to read query sequence
@@ -277,7 +292,7 @@ namespace align
                                   }
                               }
                           });
-                          
+
                       mappingListStream.close();
 
                   }
@@ -313,7 +328,7 @@ namespace align
               };
 
           // worker, takes candidate alignments and runs edlib alignment on them
-          auto worker_thread = 
+          auto worker_thread =
               [&](uint64_t tid,
                   std::atomic<bool>& is_working) {
                   is_working.store(true);
@@ -371,7 +386,7 @@ namespace align
       }
 
       /**
-       * @brief                         parse mashmap row sequence 
+       * @brief                         parse mashmap row sequence
        * @param[in]   mappingRecordLine
        * @param[out]  currentRecord
        */
@@ -402,7 +417,7 @@ namespace align
       }
 
       /**
-       * @brief                           compute alignment using edlib 
+       * @brief                           compute alignment using edlib
        * @param[in]   currentRecord       mashmap mapping parsed information
        * @param[in]   mappingRecordLine   mashmap mapping output raw string
        * @param[in]   qSequence           query sequence
@@ -445,7 +460,7 @@ namespace align
 
 #ifdef DEBUG
         std::cerr << "INFO, align::Aligner::doAlignment, WFA execution starting, query region length = " << queryLen
-          << ", reference region length= " << refLen << ", edit distance limit= " << editDistanceLimit << std::endl; 
+          << ", reference region length= " << refLen << ", edit distance limit= " << editDistanceLimit << std::endl;
 #endif
 
         int queryEndPos = currentRecord.qStartPos + queryLen;
@@ -462,10 +477,25 @@ namespace align
 
         //std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
 
-        char temp[512];
-        sprintf(temp, "lastz %s %s %s --format=paf:wfmash", &target[0], &query[0], &param.lastzParams[0]);
-        //fprintf (stderr, "[align::lastz::computeAlignments] %s\n", temp);
-        std::string s = exec(temp);
+        char* params = &param.lastzParams[0];
+
+        char cmd[512];
+        sprintf(cmd, "lastz %s %s %s --format=paf:wfmash",
+                &target[0], &query[0], &param.lastzParams[0]);
+        // std::string s = exec(cmd);
+        std::string progg("lastz");
+        std::string output_formatt("--format=paf:wfmash");
+        char* prog = &progg[0];
+        char* output_format = &output_formatt[0];
+
+        char* lastz_call[] = {
+          prog,          // 0 can be an empty string no real need for this
+          target,        // 1 the filename of the reference file
+          query,         // 2 the filename of the query file
+          output_format, // 3 output format
+        };
+
+        std::string s = fork_lastz(lastz_call);
 
         delete [] queryRegionStrand;
 
