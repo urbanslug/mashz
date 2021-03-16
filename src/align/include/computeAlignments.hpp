@@ -23,6 +23,8 @@
 #include <stdexcept>
 #include <array>
 
+#include <sys/wait.h>
+
 //Own includes
 #include "align/include/align_types.hpp"
 #include "align/include/align_parameters.hpp"
@@ -36,30 +38,48 @@
 
 #include "common/wflign/src/wflign_wfa.hpp"
 
-
 extern "C" {
 #include "common/lastz/src/lastz.h"
 }
-
 
 // adapted from https://stackoverflow.com/a/478960
 std::string exec(char* cmd) {
   std::array<char, 128> buffer;
   std::string result;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+
   if (!pipe) {
     throw std::runtime_error("popen() failed!");
   }
+
   while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
     result += buffer.data();
   }
+
   return result;
 }
 
-std::string fork_lastz(char** cmd) {
-  fork();
+std::string fork_lastz(char* cmd[]) {
+  int status = 0;
+  pid_t pid = fork();
+  if (pid < 0) {
+    throw std::runtime_error("fork() failed!");
+  }
 
-  lastz(4, cmd);
+  // we want to call lastz only in the child process
+  if (pid == 0) {
+    // we are in the child process
+    for(auto i=0; i < 4; i++)
+      std::cerr << cmd[i] << " ";
+    std::cerr << std::endl;
+
+    lastz(4, cmd);
+  };
+
+  if (pid > 0) {
+    // we are in the parent. Wait for the child.
+    wait(&status);
+  }
 
   std::string s;
   return s;
@@ -475,18 +495,18 @@ namespace align
         string rp = currentRecord.refFileName + ".hsx/" + t;
         char* target = const_cast<char*>(rp.c_str());
 
-        //std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
-
-        char* params = &param.lastzParams[0];
-
+        /*
         char cmd[512];
         sprintf(cmd, "lastz %s %s %s --format=paf:wfmash",
                 &target[0], &query[0], &param.lastzParams[0]);
-        // std::string s = exec(cmd);
+        std::string s = exec(cmd);
+        */
+
         std::string progg("lastz");
         std::string output_formatt("--format=paf:wfmash");
         char* prog = &progg[0];
         char* output_format = &output_formatt[0];
+        char* params = &param.lastzParams[0];
 
         char* lastz_call[] = {
           prog,          // 0 can be an empty string no real need for this
