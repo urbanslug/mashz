@@ -63,7 +63,7 @@ std::string fork_lastz(char* cmd[]) {
   pid_t pid, w;
   int wstatus, fd;
   char* myfifo;
-  char buf[512];
+  char buf[8000];
   std::string aln_str;
 
   myfifo = (char*) "/tmp/myfifo";
@@ -88,6 +88,8 @@ std::string fork_lastz(char* cmd[]) {
     std::cerr << std::endl;
 
     char* s2 = lastz(4, cmd);
+    char null_terminator = '\0';
+    strncat(s2, &null_terminator, 1);
     size_t size = strlen(s2);
 
     write(fd, s2, size);
@@ -101,9 +103,10 @@ std::string fork_lastz(char* cmd[]) {
     // open and read before the child terminates
     do {
       fd = open(myfifo, O_RDONLY);
-      read(fd, buf, sizeof(buf));
+      size_t buffer_size = sizeof(buf);
+      read(fd, buf, buffer_size);
 
-      for(int i=0; buf[i] != '\0'; i++) {
+      for(int i=0; (buf[i] != '\0' || i < buffer_size) ; i++) {
         aln_str += buf[i];
       }
 
