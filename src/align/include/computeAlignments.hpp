@@ -60,7 +60,6 @@ std::string exec(char* cmd) {
 }
 
 std::string fork_lastz(char* cmd[]) {
-  int status = 0;
   pid_t pid = fork();
   if (pid < 0) {
     throw std::runtime_error("fork() failed!");
@@ -73,12 +72,22 @@ std::string fork_lastz(char* cmd[]) {
       std::cerr << cmd[i] << " ";
     std::cerr << std::endl;
 
-    lastz(4, cmd);
+    int ret = lastz(4, cmd);
+    std::cerr << "return value " << ret << "\n";
   };
 
   if (pid > 0) {
-    // we are in the parent. Wait for the child.
-    wait(&status);
+    // Parent process waits here for child to terminate.
+    int returnStatus;
+    std::cerr << "waiting \n";
+    waitpid(pid, &returnStatus, 0);
+    std::cerr << "return status " << returnStatus << "\n";
+
+    if (returnStatus == 0)
+        fprintf(stderr, "The child process terminated normally.");
+
+    if (returnStatus == 1)
+        fprintf(stderr, "The child process terminated with an error!.");
   }
 
   std::string s;
@@ -506,7 +515,7 @@ namespace align
         std::string output_formatt("--format=paf:wfmash");
         char* prog = &progg[0];
         char* output_format = &output_formatt[0];
-        char* params = &param.lastzParams[0];
+        char* params = (char*)&param.lastzParams[0];
 
         char* lastz_call[] = {
           prog,          // 0 can be an empty string no real need for this
