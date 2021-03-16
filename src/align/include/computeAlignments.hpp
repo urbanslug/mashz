@@ -61,17 +61,28 @@ std::string exec(char* cmd) {
 
 std::string fork_lastz(char* cmd[]) {
   pid_t pid, w;
-  int wstatus;
+  int wstatus, fd;
+  char* myfifo;
+  char buf[512];
   std::string aln_str;
 
+  myfifo = (char*) "/tmp/myfifo";
+  mkfifo(myfifo, 0666);
+
   pid = fork();
+
   if (pid < 0) {
     throw std::runtime_error("fork() failed!");
   }
 
   // we want to call lastz only in the child process
   if (pid == 0) {
-    // we are in the child process
+    fd = open(myfifo, O_WRONLY);
+    if (fd == -1) {
+      perror("open");
+      exit(EXIT_FAILURE); // return EXIT_FAILURE;
+    }
+
     for(auto i=0; i < 4; i++)
       std::cerr << cmd[i] << " ";
     std::cerr << std::endl;
@@ -79,34 +90,43 @@ std::string fork_lastz(char* cmd[]) {
     char* s2 = lastz(4, cmd);
     size_t size = strlen(s2);
 
-    aln_str.assign(s2, size);
+    write(fd, s2, size);
+    close(fd);
 
     exit(EXIT_SUCCESS);
   };
 
+  // Parent process waits here for child to terminate.
   if (pid > 0) {
+    // open and read before the child terminates
     do {
-      std::cerr << "waiting \n";
+      fd = open(myfifo, O_RDONLY);
+      read(fd, buf, sizeof(buf));
+
+      for(int i=0; buf[i] != '\0'; i++) {
+        aln_str += buf[i];
+      }
+
+      close(fd);
+
       w = waitpid(pid, &wstatus, WUNTRACED | WCONTINUED);
       if (w == -1) {
-        std::cerr << "wait error " << w << "\n";
+        std::cerr << "wait error " << w << std::endl;
         perror("waitpid");
         exit(EXIT_FAILURE);
       }
 
       if (WIFEXITED(wstatus)) {
-        fprintf(stderr, "exited, status=%d\n", WEXITSTATUS(wstatus));
+        std::cerr << "exited, status=" << WEXITSTATUS(wstatus) << std::endl;
       } else if (WIFSIGNALED(wstatus)) {
-        fprintf(stderr, "killed by signal %d\n", WTERMSIG(wstatus));
+        std::cerr << "killed by signal " << WTERMSIG(wstatus) << std::endl;
       } else if (WIFSTOPPED(wstatus)) {
-        fprintf(stderr, "stopped by signal %d\n", WSTOPSIG(wstatus));
+        std::cerr << "stopped by signal " << WSTOPSIG(wstatus) << std::endl;
       } else if (WIFCONTINUED(wstatus)) {
-        fprintf(stderr, "continued\n");
+        std::cerr << "continued" << std::endl;
       }
     } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
   }
-
-  std::cerr << "alingment string " << aln_str << "\n";
 
   return aln_str;
 }
