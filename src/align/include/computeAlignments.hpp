@@ -60,7 +60,11 @@ std::string exec(char* cmd) {
 }
 
 std::string fork_lastz(char* cmd[]) {
-  pid_t pid = fork();
+  pid_t pid, w;
+  int wstatus;
+  std::string aln_str;
+
+  pid = fork();
   if (pid < 0) {
     throw std::runtime_error("fork() failed!");
   }
@@ -72,26 +76,39 @@ std::string fork_lastz(char* cmd[]) {
       std::cerr << cmd[i] << " ";
     std::cerr << std::endl;
 
-    int ret = lastz(4, cmd);
-    std::cerr << "return value " << ret << "\n";
+    char* s2 = lastz(4, cmd);
+    size_t size = strlen(s2);
+
+    aln_str.assign(s2, size);
+
+    exit(EXIT_SUCCESS);
   };
 
   if (pid > 0) {
-    // Parent process waits here for child to terminate.
-    int returnStatus;
-    std::cerr << "waiting \n";
-    waitpid(pid, &returnStatus, 0);
-    std::cerr << "return status " << returnStatus << "\n";
+    do {
+      std::cerr << "waiting \n";
+      w = waitpid(pid, &wstatus, WUNTRACED | WCONTINUED);
+      if (w == -1) {
+        std::cerr << "wait error " << w << "\n";
+        perror("waitpid");
+        exit(EXIT_FAILURE);
+      }
 
-    if (returnStatus == 0)
-        fprintf(stderr, "The child process terminated normally.");
-
-    if (returnStatus == 1)
-        fprintf(stderr, "The child process terminated with an error!.");
+      if (WIFEXITED(wstatus)) {
+        fprintf(stderr, "exited, status=%d\n", WEXITSTATUS(wstatus));
+      } else if (WIFSIGNALED(wstatus)) {
+        fprintf(stderr, "killed by signal %d\n", WTERMSIG(wstatus));
+      } else if (WIFSTOPPED(wstatus)) {
+        fprintf(stderr, "stopped by signal %d\n", WSTOPSIG(wstatus));
+      } else if (WIFCONTINUED(wstatus)) {
+        fprintf(stderr, "continued\n");
+      }
+    } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
   }
 
-  std::string s;
-  return s;
+  std::cerr << "alingment string " << aln_str << "\n";
+
+  return aln_str;
 }
 
 namespace align
@@ -523,7 +540,6 @@ namespace align
           query,         // 2 the filename of the query file
           output_format, // 3 output format
         };
-
         std::string s = fork_lastz(lastz_call);
 
         delete [] queryRegionStrand;

@@ -10,8 +10,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are use
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_BUILD_TYPE Release)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O -mcx16  -march=native -g -fsanitize=address -fpermissive")
+set (CMAKE_C_FLAGS
+"${CMAKE_C_FLAGS} -O -mcx16  -march=native -00 -g -fsanitize=address -fpermissive")
+set (CMAKE_CXX_FLAGS
+"${CMAKE_CXX_FLAGS} -O0 -mcx16 -march=native -g -fsanitize=address -fpermissive")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

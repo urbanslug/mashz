@@ -7,7 +7,7 @@ set(SUBVERSION_REV "")
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(lastz VERSION 1.04.12)
 
-set(CMAKE_C_FLAGS "-O3 -Wall -Wextra -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
+set(CMAKE_C_FLAGS "-O0 -g -Wall -Wextra -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
                    -DVERSION_MAJOR=${VERSION_MAJOR} \
                    -DVERSION_MAJOR=${VERSION_MAJOR} \
                    -DVERSION_MINOR=${VERSION_MINOR} \

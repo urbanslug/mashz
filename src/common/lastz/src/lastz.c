@@ -568,7 +568,7 @@ exparg expanders[] =
 //
 //----------
 
-void lastz (int argc, char** argv);
+char* lastz (int argc, char** argv);
 
 static int       report_progress         (seq* target, seq* query,
                                           int applyChore, int numQueries, int numChores,
@@ -634,7 +634,7 @@ static void      lastz_show_stats        (FILE* f);
 
 //=== the actual function main() ===
 
-void lastz
+char* lastz
    (int				argc,
 	char**			argv)
 	{
@@ -704,8 +704,13 @@ void lastz
 	// fetch arguments
 	//////////
 
+  char *ptr; // = NULL;
+  size_t output_len; // = 0;
+  FILE *f = open_memstream(&ptr, &output_len);
+
 	currParams = NULL;
 	parse_options (argc, argv, &lzParams, &izParams);
+  lzParams.outputFile = f;
 	currParams = &lzParams;
 
 	if (showDefaults)
@@ -2009,7 +2014,7 @@ show_stats_and_clean_up:
 	if (dbgReportFinish)
 		fprintf (stderr, "lastz has finished successfully\n");
 
-	// return EXIT_SUCCESS;
+	return ptr;
 	}
 
 //----------
