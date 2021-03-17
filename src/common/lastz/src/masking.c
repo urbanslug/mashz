@@ -626,7 +626,7 @@ void print_masking_interval_3
 	FILE*			f    = ((pmiInfo*) info)->f;
 	seq*			_seq = ((pmiInfo*) info)->seq;
 	seqpartition*	sp   = &_seq->partition;
-	lastz_partition*		part;
+	partition*		part;
 	char*			name;
 	unspos			offset;
 
@@ -680,7 +680,7 @@ void print_census
 	char			delimiter)
 	{
 	seqpartition*	sp;
-	lastz_partition*		nextPart;
+	partition*		nextPart;
 	u32				nextIx;
 	char*			name;
 	unspos			offset;

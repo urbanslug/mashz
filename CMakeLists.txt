@@ -20,13 +20,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(src/common/wflign EXCLUDE_FROM_ALL)
 
-add_subdirectory(src/common/lastz EXCLUDE_FROM_ALL)
+add_subdirectory(src/common/lastz)
 
 add_executable(mashz src/yeet/yeet_main.cpp)
 
 target_include_directories(mashz PRIVATE
   src
-  src/common/lastz
   src/common/wflign/deps
   src/common/wflign/deps/wflambda
   src/common/wflign/deps/patchmap
@@ -38,7 +37,6 @@ target_link_libraries(mashz
   gslcblas
   m
   pthread
-  lastz
   libwflign_static
   edlib
   wflambda
