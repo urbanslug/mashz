@@ -66,8 +66,20 @@ std::string fork_lastz(char* cmd[]) {
   char buf[8000];
   std::string aln_str;
 
-  myfifo = (char*) "/tmp/myfifo";
-  mkfifo(myfifo, 0666);
+  std::string base = "mashz-fifo-";
+  std::string template_name = base + "XXXXXX";
+  int fd1 = mkstemp(&template_name[0]);
+  if(fd1 != -1) {
+    // we don't leave it open; we are assumed to open it again externally
+    close(fd1);
+  } else {
+    cerr << "[mashz]: couldn't create fifo " << template_name << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  myfifo = &template_name[0];
+  std::cerr << " " << myfifo << std::endl;
+  mkfifo(myfifo, 0666); // everyone can write to it
 
   pid = fork();
 
@@ -120,6 +132,7 @@ std::string fork_lastz(char* cmd[]) {
       }
 
       if (WIFEXITED(wstatus)) {
+        kill(pid, SIGTERM);
         std::cerr << "exited, status=" << WEXITSTATUS(wstatus) << std::endl;
       } else if (WIFSIGNALED(wstatus)) {
         std::cerr << "killed by signal " << WTERMSIG(wstatus) << std::endl;
@@ -129,6 +142,10 @@ std::string fork_lastz(char* cmd[]) {
         std::cerr << "continued" << std::endl;
       }
     } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
+  }
+
+  if( remove(template_name.c_str()) != 0 ){
+    cerr << "error deleting fifo " << template_name << endl;
   }
 
   return aln_str;
