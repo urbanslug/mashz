@@ -568,7 +568,7 @@ exparg expanders[] =
 //
 //----------
 
-void lastz (char* out_str, int argc, char** argv);
+int main (int argc, char** argv);
 
 static int       report_progress         (seq* target, seq* query,
                                           int applyChore, int numQueries, int numChores,
@@ -631,10 +631,12 @@ static void      lastz_show_stats        (FILE* f);
 #define trackTargetRev
 #endif // allowSeveralTargets or trackMemoryUsage or valgrindMemoryCheck
 
+
 //=== the actual function main() ===
 
-void lastz
-(char* out_str, int				argc, char**			argv)
+int main
+   (int				argc,
+	char**			argv)
 	{
 	FILE*			statsF        = NULL;
 	seq*			target        = NULL;
@@ -702,14 +704,8 @@ void lastz
 	// fetch arguments
 	//////////
 
-  char *ptr; // = NULL;
-  size_t output_len; // = 0;
-  FILE *f = open_memstream(&ptr, &output_len);
-
-
 	currParams = NULL;
 	parse_options (argc, argv, &lzParams, &izParams);
-  lzParams.outputFile = f;
 	currParams = &lzParams;
 
 	if (showDefaults)
@@ -2013,21 +2009,7 @@ show_stats_and_clean_up:
 	if (dbgReportFinish)
 		fprintf (stderr, "lastz has finished successfully\n");
 
-  fclose(f);
-
-  // sizeof(char) is 1
-  out_str = realloc(out_str, output_len+1);
-  size_t counter = 0;
-  for(; *ptr; ptr++, counter++) {
-    out_str[counter] = *ptr;
-  }
-  out_str[counter] = '\0';
-
-  // free(outArray);
-
-  // char* k = "";
-
-	// return k; // return outArray;
+	return EXIT_SUCCESS;
 	}
 
 //----------
@@ -2333,7 +2315,7 @@ static seq* capsule_target
 		{
 		seqpartition* sp = &target->partition;
 
-		sp->p         = (lastz_partition*) partitions;
+		sp->p         = (partition*) partitions;
 		sp->size      = info->numPartitions + 1;
 		sp->len       = info->numPartitions;
 		sp->pool      = namePool;
@@ -2485,7 +2467,7 @@ static interval resolve_chore_target
 	seq*			target)
 	{
 	seqpartition*	tSp = &target->partition;
-	lastz_partition*		tNamePart, *tPart;
+	partition*		tNamePart, *tPart;
 	int				nameIsWildcard;
 	char*			tHeader;
 	unspos			tStart, tEnd;
@@ -2598,7 +2580,7 @@ static interval resolve_chore_query
 	char			strand)
 	{
 	seqpartition*	qSp = &query->partition;
-	lastz_partition*		qNamePart, *qPart;
+	partition*		qNamePart, *qPart;
 	chore*			_chore = &query->chore;
 	unspos			qStart, qEnd;
 	unspos			qSeqStart, qSeqEnd, qOffset, qLen;
@@ -4117,7 +4099,7 @@ static alignel* mirror_alignments
 	seq*			_seq1  = currParams->seq1;
 	seq*			_seq2  = currParams->seq2;
 	seqpartition*	sp2 = &_seq2->partition;
-	lastz_partition*		part1, *part2;
+	partition*		part1, *part2;
 	unspos			seqLen = _seq1->len;
 	int				sameStrand;
 	alignel*		newAlignList, *a, *aPrev, *aNext, *aTail, *b, *bTail;
@@ -4816,8 +4798,8 @@ static void format_options (void)
 	fprintf (helpout, "    BLASTN format is similar to the output from the blastn program of the NCBI\n");
 	fprintf (helpout, "    standalone blast package.\n");
 	fprintf (helpout, "\n");
-	fprintf (helpout, "PAF:mashz\n");
-	fprintf (helpout, "    PAF:mashz format is compatible with the output from the minimap program.\n");
+	fprintf (helpout, "PAF:wfmash\n");
+	fprintf (helpout, "    PAF:wfmash format is compatible with the output from the minimap program.\n");
 	fprintf (helpout, "    a spec for PAF files can be found at\n");
 	fprintf (helpout, "        https://github.com/lh3/miniasm/blob/master/PAF.md\n");
 	fprintf (helpout, "\n");
@@ -7131,8 +7113,8 @@ static void parse_options_loop
 			goto next_arg;
 			}
 
-		if ((strcmp (arg, "--format=PAF:mashz") == 0)
-		 || (strcmp (arg, "--format=paf:mashz") == 0)
+		if ((strcmp (arg, "--format=PAF:wfmash") == 0)
+		 || (strcmp (arg, "--format=paf:wfmash") == 0)
 		 || (strcmp (arg, "--format=PAF:WFMASH") == 0))
 			{
 			free_if_valid ("lzParams->outputInfo", lzParams->outputInfo);

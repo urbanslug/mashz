@@ -26,8 +26,6 @@
 #define global extern
 #endif
 
-void lastz (char* out_str, int argc, char** argv);
-
 //----------
 //
 // data structures and types
