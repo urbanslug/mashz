@@ -43,4 +43,4 @@ target_link_libraries(mashz
   wfa
   z)
 
-install(TARGETS mashz DESTINATION bin)
+install(TARGETS mashz-lastz mashz DESTINATION bin)
