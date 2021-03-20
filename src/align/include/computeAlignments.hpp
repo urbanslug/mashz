@@ -50,6 +50,11 @@ std::string exec(char* cmd) {
   return result;
 }
 
+bool is_file_exist(std::string &fileName) {
+  ifstream ifile(fileName);
+  return (bool)ifile;
+}
+
 namespace align
 {
 
@@ -445,26 +450,36 @@ namespace align
 
 #ifdef DEBUG
         std::cerr << "INFO, align::Aligner::doAlignment, WFA execution starting, query region length = " << queryLen
-          << ", reference region length= " << refLen << ", edit distance limit= " << editDistanceLimit << std::endl; 
+          << ", reference region length= " << refLen << ", edit distance limit= " << editDistanceLimit << std::endl;
 #endif
 
+        std::string query_hsx_filename = currentRecord.qFileName + ".hsx";
+        std::string target_hsx_filename = currentRecord.refFileName + ".hsx";
+
+        if (!is_file_exist(query_hsx_filename)) {
+          std::cerr << "Expected but could not find query file hsx index: "
+                    << query_hsx_filename << std::endl;
+          exit(EXIT_FAILURE);
+        }
+
+        if (!is_file_exist(target_hsx_filename)) {
+          std::cerr << "Expected but could not find target file hsx index: "
+                    << target_hsx_filename << std::endl;
+          exit(EXIT_FAILURE);
+        }
+
         int queryEndPos = currentRecord.qStartPos + queryLen;
+        string query = query_hsx_filename + "/" + currentRecord.qId + "[" +
+          to_string(currentRecord.qStartPos+1) + ".." + to_string(queryEndPos) + "]";;
+
         int refEndPos = currentRecord.rStartPos + refLen;
-
-        // TODO: check that hsx files exist
-        std::string q = currentRecord.qId + "[" + to_string(currentRecord.qStartPos+1) + ".." + to_string(queryEndPos) + "]";
-        string qp = currentRecord.qFileName + ".hsx/" + q;
-        char* query = const_cast<char*>(qp.c_str());
-
-        std::string t = refId +  "["  + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
-        string rp = currentRecord.refFileName + ".hsx/" + t;
-        char* target = const_cast<char*>(rp.c_str());
-
-        //std::cerr << "[align::lastz::computeAlignments] target" << t  << "query" << q << std::endl;
+        string target = target_hsx_filename + "/" + refId +  "["
+          + to_string(currentRecord.rStartPos+1) + ".." + to_string(refEndPos) + "]";
 
         char temp[512];
-        sprintf(temp, "mashz-lastz %s %s %s --format=paf:wfmash", &target[0], &query[0], &param.lastzParams[0]);
-        //fprintf (stderr, "[align::lastz::computeAlignments] %s\n", temp);
+        sprintf(temp,
+                "mashz-lastz %s %s %s --format=paf:wfmash",
+                &target[0], &query[0], &param.lastzParams[0]);
         std::string s = exec(temp);
 
         delete [] queryRegionStrand;
