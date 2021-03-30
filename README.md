@@ -1,6 +1,7 @@
 # mashz
 
-Mashz is a merging of mashmap and lastz. 
+*A DNA sequence read mapper based on mash distances (mashmap) and then base level alignment (lastz).*
+
 mashmap performs approximate matching to somewhat roughly identify similar regions.
 We then run lastz runs over these regions to performs base level alignment and
 get a more accurate alignment.
@@ -15,6 +16,15 @@ Make sure mashz-lastz is in your PATH for mashz to find it.
 
 mashz-lastz is just lastz bundled with mashz to ensure compability.
 The name mashz-lastz is to avoid conflict with any installed lastz versions.
+
+## Parameters
+
+  - `-l` block length   a minimum length filter for the merged mappings
+  - `-s` segment_length length of the mapping seed 
+  - `-n` n_secondary    the number of secondary (lower score) mappings to keep default is zero
+  - `-p` $map_pct_id    the minimum similarity score for mash distance alignment
+  - `-a` $align_pct_id  the minimum similarity score for base level alignment
+
 
 ## Lastz
 
@@ -31,7 +41,8 @@ mashz target.fa query.fa \
 #### alignment percentage identity (-a/--align-pct-id)
 For better user experience mashz can pass forward to lastz a parameter to filter
 out mappings that are below the supplied similarity threshold. 
-This parameter (`-a`) is the same as setting/passing `--filter=identity:<value>` in lastz.
+This parameter (`-a`) is the same as settin
+g/passing `--filter=identity:<value>` in lastz.
 
 ### hsx index
 mashz expects your fasta files to be `hsx` indexed and the hsx indexes in the 
