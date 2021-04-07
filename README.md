@@ -6,7 +6,7 @@ mashmap performs approximate matching to somewhat roughly identify similar regio
 We then run lastz runs over these regions to performs base level alignment and
 get a more accurate alignment.
 
-## Compile
+### Compile
 
 ```
 cmake -H. -Bbuild && cmake --build build -- -j 16
@@ -17,7 +17,7 @@ Make sure mashz-lastz is in your PATH for mashz to find it.
 mashz-lastz is just lastz bundled with mashz to ensure compability.
 The name mashz-lastz is to avoid conflict with any installed lastz versions.
 
-## Parameters
+### Parameters
 
   - `-l` block length   a minimum length filter for the merged mappings
   - `-s` segment_length length of the mapping seed 
@@ -26,9 +26,7 @@ The name mashz-lastz is to avoid conflict with any installed lastz versions.
   - `-a` $align_pct_id  the minimum similarity score for base level alignment
 
 
-## Lastz
-
-### lastz specific arguments
+### Lastz
 
 Pass arguments to lastz through `--lastz` or `-z` for example
 ```
@@ -41,18 +39,4 @@ mashz target.fa query.fa \
 #### alignment percentage identity (-a/--align-pct-id)
 For better user experience mashz can pass forward to lastz a parameter to filter
 out mappings that are below the supplied similarity threshold. 
-This parameter (`-a`) is the same as settin
-g/passing `--filter=identity:<value>` in lastz.
-
-### hsx index
-mashz expects your fasta files to be `hsx` indexed and the hsx indexes in the 
-same directory as your fasta file and with the extension `hsx` appeneded to the
-fasta filename.
-
-This allows lastz to access sequences within the fasta file based on offsets/coordinates.
-
-To generate a hsx index file use the script `scripts/build_fasta_hsx.py`.
-Example:
-```
-scripts/build_fasta_hsx.py sequence.fa > sequence.fa.hsx
-```
+This parameter (`-a`) is the same as setting/passing `--filter=identity:<value>` in lastz.
