@@ -33,7 +33,7 @@
 #include "common/atomic_queue/atomic_queue.h"
 #include "common/seqiter.hpp"
 #include "common/progress.hpp"
-
+#include "common/hsx.cpp"
 #include "common/wflign/src/wflign_wfa.hpp"
 
 // adapted from https://stackoverflow.com/a/478960
@@ -317,7 +317,7 @@ namespace align
                   }
               };
 
-          // worker, takes candidate alignments and runs edlib alignment on them
+          // worker, takes candidate alignments and runs lastz alignment on them
           auto worker_thread = 
               [&](uint64_t tid,
                   std::atomic<bool>& is_working) {
@@ -407,7 +407,7 @@ namespace align
       }
 
       /**
-       * @brief                           compute alignment using edlib 
+       * @brief                           compute alignment using lastz
        * @param[in]   currentRecord       mashmap mapping parsed information
        * @param[in]   mappingRecordLine   mashmap mapping output raw string
        * @param[in]   qSequence           query sequence
@@ -457,15 +457,13 @@ namespace align
         std::string target_hsx_filename = currentRecord.refFileName + ".hsx";
 
         if (!is_file_exist(query_hsx_filename)) {
-          std::cerr << "Expected but could not find query file hsx index: "
-                    << query_hsx_filename << std::endl;
-          exit(EXIT_FAILURE);
+          std::vector<std::string> hsx_files(1, currentRecord.qFileName);
+          generate_hsx(hsx_files, query_hsx_filename);
         }
 
         if (!is_file_exist(target_hsx_filename)) {
-          std::cerr << "Expected but could not find target file hsx index: "
-                    << target_hsx_filename << std::endl;
-          exit(EXIT_FAILURE);
+          std::vector<std::string> hsx_files(1, currentRecord.refFileName);
+          generate_hsx(hsx_files, target_hsx_filename);
         }
 
         int queryEndPos = currentRecord.qStartPos + queryLen;
