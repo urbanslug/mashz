@@ -18,6 +18,7 @@
 //External includes
 #include "common/murmur3.h"
 #include "common/prettyprint.hpp"
+#include "common/ALeS.cpp"
 
 namespace skch
 {
@@ -74,6 +75,22 @@ namespace skch
      */
     inline hash_t getHash(const char* seq, int length)
     {
+      std::string new_seq;
+      char* spaced_seed = "1111110111011111";
+      char* s = spaced_seed; const char* q = seq;
+      if (length == strlen(spaced_seed)) {
+        std::cout << "same len" << std::endl;
+        for (size_t i=0; i<length; s++, i++, q++) {
+          if (*s == '1') new_seq.push_back(*q);
+        }
+
+        seq = new_seq.c_str();
+        length = strlen(seq);
+      } else {
+        std::cerr << "Warning: Spaced seed length is not equal to k-mer size."
+                  << " Will not generating a spaced seeds.";
+      }
+
       char data[16];
       MurmurHash3_x64_128(seq, length, seed, data);
 
@@ -110,7 +127,7 @@ namespace skch
 
         makeUpperCase(seq, len);
 
-        //Compute reverse complement of seq
+        // Compute reverse complement of seq
         char* seqRev = new char[len];
 
         if(alphabetSize == 4) //not protein
@@ -118,11 +135,18 @@ namespace skch
 
         for(offset_t i = 0; i < len - kmerSize + 1; i++)
         {
-          //The serial number of current sliding window
-          //First valid window appears when i = windowSize - 1
+          // The serial number of current sliding window
+          // First valid window appears when i = windowSize - 1
           offset_t currentWindowId = i - windowSize + 1;
 
-          //Hash kmers
+          std::vector<std::string> seedss = {
+            "111011011111",
+            "110110010000110111",
+            "111001010000100100111",
+            "11010100001000101000111"
+          };
+
+          // Hash kmers
           hash_t hashFwd = CommonFunc::getHash(seq + i, kmerSize); 
           hash_t hashBwd;
 
