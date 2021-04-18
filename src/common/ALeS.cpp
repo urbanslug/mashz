@@ -19,19 +19,21 @@
 
 
 using namespace std;
+
 namespace ales {
-  int* l;					              // Seeds lengths
-  int k;                        // Number of seeds
-  int N;                        // Length of the random region R
-  double p;                     // Similarity level
-  int w;                        // Weight
-  bool mode;										// mode decides if sensitivity (0) or estimated sensitivity (1) will be used.
-  bool bestMode = 0;            // variable used to control print statement
-  int estCount = 0;             // variable used to control print statement
-  double optimized_best = 0.0;  // holds the best sensitivity obtained in the function findOptimal()
-  int original_m = 0;           // resets the m value in adaptive length algorithm
-  int original_M = 0;           // resets the M value in adaptive length algorithm
-  bool isRegionCreated = false;	// makes sure homologous_array is created only once
+  int* l;								// Seeds lengths
+  int k;                // Number of seeds
+  int N;								// Length of the random region R
+  double p;							// Similarity level
+  int w;								// Weight
+  bool mode;							// mode decides if sensitivity (0) or estimated sensitivity (1) will be used.
+  bool bestMode = 0;					// variable used to control print statement
+  int estCount = 0;					// variable used to control print statement
+  double optimized_best = 0.0;		// holds the best sensitivity obtained in the function findOptimal()
+  int original_m = 0;					// resets the m value in adaptive length algorithm
+  int original_M = 0;					// resets the M value in adaptive length algorithm
+  bool isRegionCreated = false;		// makes sure homologous_array is created only once
+  uint32_t iterations = 1;
 
   /*
    * Precomputed arrays:
@@ -504,8 +506,7 @@ namespace ales {
 
   // create array of size 32 bit or 64 bit or 128 bit according to N
   // used to estimate the sensitivity
-  void makeHomologousRegion(double p, int N)
-  {
+  void makeHomologousRegion(double p, int N){
 
     if(isRegionCreated)
       return;
@@ -884,14 +885,11 @@ namespace ales {
   // Heuristic algorithm for generating lengths of the seeds given minimum length m and maximum length M
   void MAKE_L(int m, int M)
   {
-    int size = sizeof l / sizeof l[0];
-
     int* cnt = new int[100]; // cnt has the number of each l[i]
     for (int i=0;i<100;i++){
       cnt[i] = 0;
     }
     int temp = M;
-    // std::cerr << "MAKE_L " << " m "<< m << " M " << M << " k " << k << " size " << size << endl;
     l[0] = m; l[k-1] = M;
     cnt [l[0]] = 1; cnt[l[k-1]] = 1;
     bool isReachedToEnd = false;
@@ -1205,7 +1203,7 @@ namespace ales {
 
     t[0] = clock()/ 1000000.0;
     for (k=0; k<tries; k++) { // try "tries" times starting with random seeds and OC them
-      //cout<<k<<endl;
+      cout << "tries " << k <<endl;
       // initialize seeds randomly
       badMove++;
       if(nSeeds == 1){
@@ -1287,36 +1285,32 @@ namespace ales {
         }
         avg_m += min;
         avg_M += max;
-        /*
-          if (curSens > bestSens) {
+        if (curSens > bestSens) {
           badMove = 0;
           bestSens = curSens;
           t[1] = clock()/ 1000000.0;
           cout << "\n --- random try number " << k << " --- " << endl;
           cout << "seeds: " << endl;
           for (i=0; i<nSeeds; i++)
-          cout << seeds[i] << endl;
+            cout << seeds[i] << endl;
           if(!bestMode)
-          cout << "Real sensitivity = " << bestSens << endl;
+            cout << "Real sensitivity = " << bestSens << endl;
           else{
-          if(estCount == 0){
-          //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
-          //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl;
-          estCount = 1;
-          }
-          cout << "Estimated sensitivity = " << bestSens <<endl<<endl;
+            if(estCount == 0){
+              //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
+              //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl;
+              estCount = 1;
+            }
+            cout << "Estimated sensitivity = " << bestSens <<endl<<endl;
           }
           cout <<"time (since beginning): "<<t[1]-t[0]<< endl << flush;
-          }
-        */
+        }
       }
     }
-    /*
     // work with real sensitivity
     cout << endl << "Best sensitivity is " << bestSens << endl;
     cout<<endl;
     cout << "Computed in " << t[1]-t[0] << " seconds" << endl << endl;
-    */
     return bestSens;
   }
 
@@ -1327,17 +1321,17 @@ namespace ales {
     srand((unsigned )(time(0)));
     double t[2];
     // calculating the total memory available in the system to prevent the code from crashing while computing sensitivity.
-    //total virtual memory of the system is total memory available - (1.5 time the size of homologous array)
-    //1.5 times the size is used for safety
+    // total virtual memory of the system is total memory available - (1.5 time the size of homologous array)
+    // 1.5 times the size is used for safety
 
-    //if linux system detected
+    // if linux system detected
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
     struct sysinfo si;
     sysinfo (&si);
     totalVirtualMem = (si.totalram + si.totalswap);
     totalVirtualMem *= si.mem_unit;
     totalVirtualMem -= 1.5 * homologous_array_size;
-    //if apple system detected
+    // if apple system detected
 #elif defined(__APPLE__)
     long long memSize;
     size_t length = sizeof(long long);
@@ -1360,62 +1354,50 @@ namespace ales {
     if (m < w) m = w;
     if (M < m) M = m;
 
-    // cout<<"Generating "<< k << " seeds of weight "<<w<<" for similarity level "<< p <<" and length of homology region "<< N<<endl<<endl;
+    cout<<"Generating "<< k << " seeds of weight "<<w<<" for similarity level "<< p <<" and length of homology region "<< N<<endl<<endl;
 
     if (k == 1){
       m = w+1; // try a wide range of lengths for single seeds
-      // cout << "The program starts computing ..."<<endl;
-      // cout << "If you reach a seed with your desired sensitivity you can kill the program ... "<<endl;
-      // cout<< endl;
-      // one try
-      RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, 5, N, p, 0);
+      cout << "The program starts computing ..."<<endl;
+      cout << "If you reach a seed with your desired sensitivity you can kill the program ... "<<endl;
+      cout<< endl;
+      RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, iterations, N, p, 0);
     }
     else{
       MAKE_L(m,M);
       ALLOCATE_RUN_FOR_MULTIPLE_SEED_FIXED_LENGTH_SWAP1(w, l, S, k);
+      t[1] = clock()/ 1000000.0;
+      cout << "ALeS initial seed set is: "<<endl<<endl;
+      printArray2(S,k);
+      cout << "Computed in "<<t[1]-t[0]<< " seconds" << endl;
+      cout<< endl;
       double sensitivity = 0.0;
       sensitivity = MultipleSensitivity(S, k, N, p , totalVirtualMem);
-      /*
-        t[1] = clock()/ 1000000.0;
-        cout << "ALeS initial seed set is: "<<endl<<endl;
-        printArray2(S,k);
-        cout << "Computed in "<<t[1]-t[0]<< " seconds" << endl;
-        cout<< endl;
-        double sensitivity = 0.0;
-        sensitivity = MultipleSensitivity(S, k, N, p , totalVirtualMem);
-        bestMode = mode;
-        if(!bestMode)
+      bestMode = mode;
+      if(!bestMode)
         cout << "Real Sensitivity is " << sensitivity << endl;
-        else{
+      else{
         if(estCount == 0){
-        //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
-        //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl<<endl;
-        estCount = 1;
+          //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
+          //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl<<endl;
+          estCount = 1;
         }
         cout<< "Estimated Sensitivity is "<<sensitivity<<endl;
-        }
-        cout<<endl;
-        cout << "The program starts computing better seeds ..."<<endl;
-        cout << "If you reach a set of seeds with your desired sensitivity you can kill the program ... "<<endl;
-        cout << "b4\n";
+      }
+      cout<<endl;
+      cout << "The program starts computing better seeds ..."<<endl;
+      cout << "If you reach a set of seeds with your desired sensitivity you can kill the program ... "<<endl;
 
-        for(int i = 0;i < k;i++){
-        S[i] = new char[100];
-        }
-        cout << "After\n";
-
-        RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, 500, N, p, sensitivity);
-      */
       for(int i = 0;i < k;i++){
         S[i] = new char[100];
       }
-
-      RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, 5, N, p, sensitivity);
+      RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, iterations, N, p, sensitivity);
     }
   }
 
   //verbose mode
-  void verbose() {
+  void verbose(){
+
     cerr << "Four arguments required; different number given\n"
          << "command line should be:\n"
          << "./ALeS <weight> <numberOfSeeds> <similarity> <lengthOfHomologyRegion>\n";
@@ -1425,25 +1407,13 @@ namespace ales {
     cerr<<" <lengthOfHomologyRegion> : Length of homologous region"<<endl;
   }
 
-
-  // MAIN
-  char** ales_main(int ww, int kk, float pp, int NN)
-  {
+  char** ales_wrapper(int ww, int kk, float pp, int NN) {
+    // set parameters`
     w=ww; k=kk; p=pp; N=NN;
-    /*
-      double ttime[2] = {0, 0};
-      ttime[0] = clock()/ 1000000.0;
 
-      if (argc != 5) {
-      verbose();
-      exit(1);
-      }
-      // set parameters
-      w = atoi(argv[1]);  // weight
-      k = atoi(argv[2]);  // number of seeds
-      p = atof(argv[3]);  // similarity
-      N = atoi(argv[4]);  // length of homology region
-    */
+    double ttime[2] = {0, 0};
+    ttime[0] = clock()/ 1000000.0;
+
     l = new int[k];		// seeds' lengths array
 
     //calculating the array size in advance required for estimating sensitivity
@@ -1479,11 +1449,12 @@ namespace ales {
         exit(EXIT_FAILURE);
       }
       ALeS(S);
-    } catch(std::bad_alloc) {
+    }catch(std::bad_alloc){
       cerr << "Memory error (Allocation failed)"<<endl
-           << "You probably need more memory to run this program"<<endl;
+           <<"You probably need more memory to run this program"<<endl;
     }
-
+    ttime[1] = clock()/ 1000000.0;
+    cout << "Total time (" << iterations << " iterations): " << ttime[1]-ttime[0]<< " seconds" << endl;
     return S;
   }
 

@@ -73,12 +73,12 @@ namespace skch
     /**
      * @brief   hashing kmer string (borrowed from mash)
      */
-    inline hash_t getHash(const char* seq, int length)
+    inline hash_t get_spaced_hash(const char* seq, int length, char* spaced_seed)
     {
       std::string new_seq;
-      char* spaced_seed = "1111110111011111";
+
       char* s = spaced_seed; const char* q = seq;
-      if (length == strlen(spaced_seed)) {
+      if (length == strlen(spaced_seed)) { // should alaways be true when called rom addMinimizers
         std::cout << "same len" << std::endl;
         for (size_t i=0; i<length; s++, i++, q++) {
           if (*s == '1') new_seq.push_back(*q);
@@ -86,11 +86,24 @@ namespace skch
 
         seq = new_seq.c_str();
         length = strlen(seq);
-      } else {
-        std::cerr << "Warning: Spaced seed length is not equal to k-mer size."
-                  << " Will not generating a spaced seeds.";
       }
 
+      char data[16];
+      MurmurHash3_x64_128(seq, length, seed, data);
+
+      hash_t hash;
+
+      hash = *((hash_t *)data);
+
+      return hash;
+    }
+
+
+    /**
+     * @brief   hashing kmer string (borrowed from mash)
+     */
+    inline hash_t getHash(const char* seq, int length)
+    {
       char data[16];
       MurmurHash3_x64_128(seq, length, seed, data);
 
@@ -133,25 +146,48 @@ namespace skch
         if(alphabetSize == 4) //not protein
           CommonFunc::reverseComplement(seq, seqRev, len);
 
+        // Generate spaced seeds
+        uint32_t seed_weight = floor(kmerSize/2);
+        uint32_t seed_count = 5;
+        char** spaced_seeds = ales::ales_wrapper(seed_weight, seed_count, 0.6, kmerSize);
+        std::vector<std::string> selected_spaced_seeds;
+
+        for (uint32_t i=0; i<seed_count; i++) {
+          char* current_seed = spaced_seeds[i];
+          if (kmerSize == strlen(current_seed)) {
+            selected_spaced_seeds.push_back(std::string(current_seed));
+          }
+        }
+
+        if (selected_spaced_seeds.empty()) {
+          std::cerr << "Warning: Spaced seed length is not equal to k-mer size."
+                    << " Will not generating a spaced seeds." << std::endl;
+        }
+
         for(offset_t i = 0; i < len - kmerSize + 1; i++)
         {
           // The serial number of current sliding window
           // First valid window appears when i = windowSize - 1
           offset_t currentWindowId = i - windowSize + 1;
 
-          std::vector<std::string> seedss = {
-            "111011011111",
-            "110110010000110111",
-            "111001010000100100111",
-            "11010100001000101000111"
-          };
-
-          // Hash kmers
-          hash_t hashFwd = CommonFunc::getHash(seq + i, kmerSize); 
+          hash_t hashFwd;
           hash_t hashBwd;
+          // Hash kmers
+          // TODO: wrap in a lambda
+          if (selected_spaced_seeds.empty()) {
+            hashFwd = CommonFunc::getHash(seq + i, kmerSize);
+          } else {
+            char* sp = &selected_spaced_seeds[0][0];
+            hashFwd = CommonFunc::get_spaced_hash(seq + i, kmerSize, sp);
+          }
 
           if(alphabetSize == 4)
-            hashBwd = CommonFunc::getHash(seqRev + len - i - kmerSize, kmerSize);
+            if (selected_spaced_seeds.empty()) {
+              hashBwd = CommonFunc::getHash(seqRev + len - i - kmerSize, kmerSize);
+            } else {
+              char* sp = &selected_spaced_seeds[0][0];
+              hashBwd = CommonFunc::get_spaced_hash(seqRev + len - i - kmerSize, kmerSize, sp);
+            }
           else  //proteins
             hashBwd = std::numeric_limits<hash_t>::max();   //Pick a dummy high value so that it is ignored later
 
