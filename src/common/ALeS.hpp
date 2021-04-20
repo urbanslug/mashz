@@ -1,3 +1,6 @@
+#ifndef ALES_HPP
+#define ALES_HPP
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -18,7 +21,7 @@
 #endif
 
 
-using namespace std;
+// using namespace std;
 
 namespace ales {
   int* l;								// Seeds lengths
@@ -34,6 +37,7 @@ namespace ales {
   int original_M = 0;					// resets the M value in adaptive length algorithm
   bool isRegionCreated = false;		// makes sure homologous_array is created only once
   uint32_t iterations = 1;
+  double sens = 0.0;
 
   /*
    * Precomputed arrays:
@@ -296,12 +300,12 @@ namespace ales {
   int homologous_array_size = 0;				// size of the homologous array to be created if necessary
 
   // prints an array (used for printing seeds)
-  void printArray2(char** array,int length)
+  void printArray2(char** array, int length)
   {
     for (int i=0;i<length;i++){
-      cout<<array[i]<<endl;
+      std::cerr<<array[i]<<std::endl;
     }
-    cout<<endl;
+    std::cerr<<std::endl;
   }
 
   // updates OM[k][cur_seed] (or [cur_seed][k]) due to swapping 1 with 0 in positions i(1) and j(0) in cur_seed
@@ -515,9 +519,9 @@ namespace ales {
     std::mt19937 rng{rd()}; // rng
     std::bernoulli_distribution distribution(p);
 
-    cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
-    cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl<<endl;
-    cout << "Creating array to estimate sensitivity ..." << endl;
+    // std::cerr<<std::endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<std::endl;
+    std::cerr<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<std::endl<<std::endl;
+    std::cerr << "Creating array to estimate sensitivity ..." << std::endl;
     if(N <= 32){
       homologous_array_32 = new uint32_t[array_size];
       for(int i = 0; i < array_size; i++){
@@ -1203,7 +1207,7 @@ namespace ales {
 
     t[0] = clock()/ 1000000.0;
     for (k=0; k<tries; k++) { // try "tries" times starting with random seeds and OC them
-      cout << "tries " << k <<endl;
+      // std::cerr << "tries " << k <<std::endl;
       // initialize seeds randomly
       badMove++;
       if(nSeeds == 1){
@@ -1289,28 +1293,31 @@ namespace ales {
           badMove = 0;
           bestSens = curSens;
           t[1] = clock()/ 1000000.0;
-          cout << "\n --- random try number " << k << " --- " << endl;
-          cout << "seeds: " << endl;
-          for (i=0; i<nSeeds; i++)
-            cout << seeds[i] << endl;
-          if(!bestMode)
-            cout << "Real sensitivity = " << bestSens << endl;
-          else{
+          // std::cerr << "\n --- random try number " << k << " --- " << std::endl;
+          // std::cerr << "seeds: " << std::endl;
+          for (i=0; i<nSeeds; i++) {
+            // TODO: remove?
+            //std::cerr << seeds[i] << std::endl;
+          }
+          if(!bestMode) {
+            // std::cerr << "Real sensitivity = " << bestSens << std::endl;
+          } else {
             if(estCount == 0){
-              //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
-              //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl;
+              //std::cerr<<std::endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<std::endl;
+              //std::cerr<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<std::endl;
               estCount = 1;
             }
-            cout << "Estimated sensitivity = " << bestSens <<endl<<endl;
+            // std::cerr << "Estimated sensitivity = " << bestSens <<std::endl<<std::endl;
           }
-          cout <<"time (since beginning): "<<t[1]-t[0]<< endl << flush;
+          // std::cerr <<"time (since beginning): "<<t[1]-t[0]<< std::endl << flush;
         }
       }
     }
     // work with real sensitivity
-    cout << endl << "Best sensitivity is " << bestSens << endl;
-    cout<<endl;
-    cout << "Computed in " << t[1]-t[0] << " seconds" << endl << endl;
+    // std::cerr << std::endl << "Best sensitivity is " << bestSens << std::endl;
+    // std::cerr<<std::endl;
+    // std::cerr << "Computed in " << t[1]-t[0] << " seconds" << std::endl << std::endl;
+    sens = bestSens;
     return bestSens;
   }
 
@@ -1340,7 +1347,7 @@ namespace ales {
     sysctlnametomib("hw.memsize", mib, &miblen);
     int iError = sysctl(mib, 2, &memSize, &length, NULL, 0);
     if(iError != 0)
-      cout<<"Error calculating memory"<<endl;
+      std::cerr<<"Error calculating memory"<<std::endl;
     totalVirtualMem = memSize;
     totalVirtualMem-= 1.5 * homologous_array_size;
 #endif
@@ -1354,41 +1361,40 @@ namespace ales {
     if (m < w) m = w;
     if (M < m) M = m;
 
-    cout<<"Generating "<< k << " seeds of weight "<<w<<" for similarity level "<< p <<" and length of homology region "<< N<<endl<<endl;
+    // std::cerr<<"Generating "<< k << " seeds of weight "<<w<<" for similarity level "<< p <<" and length of homology region "<< N<<std::endl<<std::endl;
 
     if (k == 1){
       m = w+1; // try a wide range of lengths for single seeds
-      cout << "The program starts computing ..."<<endl;
-      cout << "If you reach a seed with your desired sensitivity you can kill the program ... "<<endl;
-      cout<< endl;
+      // std::cerr << "The program starts computing ..."<<std::endl;
+      // std::cerr << "If you reach a seed with your desired sensitivity you can kill the program ... "<<std::endl;
+      //std::cerr<< std::endl;
       RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, iterations, N, p, 0);
-    }
-    else{
+    } else {
       MAKE_L(m,M);
       ALLOCATE_RUN_FOR_MULTIPLE_SEED_FIXED_LENGTH_SWAP1(w, l, S, k);
       t[1] = clock()/ 1000000.0;
-      cout << "ALeS initial seed set is: "<<endl<<endl;
-      printArray2(S,k);
-      cout << "Computed in "<<t[1]-t[0]<< " seconds" << endl;
-      cout<< endl;
+      // std::cerr << "ALeS initial seed set is: "<<std::endl<<std::endl;
+      // printArray2(S,k);
+      // std::cerr << "Computed in "<<t[1]-t[0]<< " seconds" << std::endl;
+      // std::cerr<< std::endl;
       double sensitivity = 0.0;
       sensitivity = MultipleSensitivity(S, k, N, p , totalVirtualMem);
       bestMode = mode;
-      if(!bestMode)
-        cout << "Real Sensitivity is " << sensitivity << endl;
-      else{
+      if(!bestMode) {
+        // std::cerr << "Real Sensitivity is " << sensitivity << std::endl;
+      } else {
         if(estCount == 0){
-          //cout<<endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<endl;
-          //cout<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<endl<<endl;
+          //std::cerr<<std::endl<<"Seeds found for which Real Sensitivity cannot be computed because of Insufficient Memory"<<std::endl;
+          //std::cerr<<"Estimated Sensitivity will be used to prevent ALeS from Crashing!!!"<<std::endl<<std::endl;
           estCount = 1;
         }
-        cout<< "Estimated Sensitivity is "<<sensitivity<<endl;
+        // std::cerr<< "Estimated Sensitivity is "<<sensitivity<<std::endl;
       }
-      cout<<endl;
-      cout << "The program starts computing better seeds ..."<<endl;
-      cout << "If you reach a set of seeds with your desired sensitivity you can kill the program ... "<<endl;
+      // std::cerr<<std::endl;
+      // std::cerr << "The program starts computing better seeds ..."<<std::endl;
+      // std::cerr << "If you reach a set of seeds with your desired sensitivity you can kill the program ... "<<std::endl;
 
-      for(int i = 0;i < k;i++){
+      for (int i = 0;i < k;i++) {
         S[i] = new char[100];
       }
       RANDOM_START_SWAP_FOR_OC_WITH_RANDOM_LENGTH(m, M, w, l, S, k, iterations, N, p, sensitivity);
@@ -1398,19 +1404,16 @@ namespace ales {
   //verbose mode
   void verbose(){
 
-    cerr << "Four arguments required; different number given\n"
+    std::cerr << "Four arguments required; different number given\n"
          << "command line should be:\n"
          << "./ALeS <weight> <numberOfSeeds> <similarity> <lengthOfHomologyRegion>\n";
-    cerr<<" <weight> : Number of match positions in each seed"<<endl;
-    cerr<<" <numberOfSeeds> : Number of seeds"<<endl;
-    cerr<<" <similarity> : Similarity level"<<endl;
-    cerr<<" <lengthOfHomologyRegion> : Length of homologous region"<<endl;
+    std::cerr<<" <weight> : Number of match positions in each seed"<<std::endl;
+    std::cerr<<" <numberOfSeeds> : Number of seeds"<<std::endl;
+    std::cerr<<" <similarity> : Similarity level"<<std::endl;
+    std::cerr<<" <lengthOfHomologyRegion> : Length of homologous region"<<std::endl;
   }
 
-  char** ales_wrapper(int ww, int kk, float pp, int NN) {
-    // set parameters`
-    w=ww; k=kk; p=pp; N=NN;
-
+  char** ales_wrapper() {
     double ttime[2] = {0, 0};
     ttime[0] = clock()/ 1000000.0;
 
@@ -1429,33 +1432,63 @@ namespace ales {
       S[i] = new char[100];
     try{
       if(w < 1 || w >= N){
-        cerr<<"Invalid seed weight !!!"<<endl;
+        std::cerr<<"Invalid seed weight !!!"<<std::endl;
         verbose();
         exit(EXIT_FAILURE);
       }
       if(k < 1){
-        cerr<<"Invalid number of seeds !!!"<<endl;
+        std::cerr<<"Invalid number of seeds !!!"<<std::endl;
         verbose();
         exit(EXIT_FAILURE);
       }
       if(p < 0 || p > 1){
-        cerr<<"Invalid similarity level !!!"<<endl;
+        std::cerr<<"Invalid similarity level !!!"<<std::endl;
         verbose();
         exit(EXIT_FAILURE);
       }
       if(N <= 0 || N > 127){
-        cerr<<"Invalid region length !!!"<<endl;
+        std::cerr<<"Invalid region length !!!"<<std::endl;
         verbose();
         exit(EXIT_FAILURE);
       }
       ALeS(S);
     }catch(std::bad_alloc){
-      cerr << "Memory error (Allocation failed)"<<endl
-           <<"You probably need more memory to run this program"<<endl;
+      std::cerr << "Memory error (Allocation failed)"<<std::endl
+           <<"You probably need more memory to run this program"<<std::endl;
     }
     ttime[1] = clock()/ 1000000.0;
-    cout << "Total time (" << iterations << " iterations): " << ttime[1]-ttime[0]<< " seconds" << endl;
+    //std::cerr << "Total time (" << iterations << " iterations): " << ttime[1]-ttime[0]<< " seconds" << std::endl;
     return S;
   }
 
+  struct spaced_seed {
+    char* seed;
+    size_t length;
+  };
+
+  void printSpacedSeeds(std::vector<spaced_seed> &spaced_seeds) {
+    for (auto &sp: spaced_seeds) {
+      std::cerr << sp.seed << std::endl;
+    }
+    std::cerr<<std::endl;
+  }
+
+
+  std::vector<spaced_seed> generate_spaced_seeds(int weight, int number_of_seeds, float similarity, int region_length) {
+    // set parameters
+    w=weight; k=number_of_seeds; p=similarity; N=region_length;
+
+    char** raw_spaced_seeds = ales_wrapper();
+    std::vector<spaced_seed> spaced_seeds;
+
+    for (uint32_t i=0; i<number_of_seeds; i++) {
+      char* s = raw_spaced_seeds[i];
+      spaced_seeds.push_back(spaced_seed{s, strlen(s)});
+    }
+
+    printSpacedSeeds(spaced_seeds);
+    std::cerr << "Sensitivity " << sens << std::endl;
+    return spaced_seeds;
+  }
 }
+#endif

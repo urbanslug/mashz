@@ -30,6 +30,7 @@
 #include "common/seqiter.hpp"
 #include "common/progress.hpp"
 #include "common/filesystem.hpp"
+#include "common/ALeS.hpp"
 
 namespace skch
 {
@@ -70,6 +71,7 @@ namespace skch
 
       //reference sketch
       const skch::Sketch &refSketch;
+      std::vector<ales::spaced_seed> spaced_seeds;
 
       //Container type for saving read sketches during L1 and L2 both
       typedef Sketch::MI_Type MinVec_Type;
@@ -97,6 +99,16 @@ namespace skch
         param(p),
         refSketch(refsketch),
         processMappingResults(f)
+    {
+      this->mapQuery();
+    }
+
+    Map(const skch::Parameters &p, const skch::Sketch &refsketch,
+        std::vector<ales::spaced_seed> &sp_seeds, PostProcessResultsFn_t f = nullptr) :
+      param(p),
+      refSketch(refsketch),
+      processMappingResults(f),
+      spaced_seeds(sp_seeds)
     {
       this->mapQuery();
     }
@@ -503,6 +515,11 @@ namespace skch
           ///1. Compute the minimizers
 
           CommonFunc::addMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter);
+          if (spaced_seeds.empty()) {
+            CommonFunc::addMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter);
+          } else {
+            CommonFunc::addSpacedSeedMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter, spaced_seeds);
+          }
 
 #ifdef DEBUG
           std::cerr << "[mashz::skch::Map:doL1Mapping] read id " << Q.seqCounter << ", minimizer count = " << Q.minimizerTableQuery.size() << "\n";
