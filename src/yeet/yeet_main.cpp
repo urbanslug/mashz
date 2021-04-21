@@ -48,19 +48,13 @@ int main(int argc, char** argv) {
     if (!yeet_parameters.remapping) {
         skch::printCmdOptions(map_parameters);
 
-        std::cerr << "INFO, ALeS, Generating spaced seeds" << std::endl;
-        uint32_t seed_weight = 10;
-        uint32_t seed_count = 5;
-        uint32_t region_length = 20;
-        float similarity = 0.75;
-        std::vector<ales::spaced_seed> spaced_seeds = ales::generate_spaced_seeds(seed_weight, seed_count, similarity, region_length);
-        std::chrono::duration<double> time_spaced_seeds = skch::Time::now() - t0;
-        std::cerr << "INFO, ALeS, Time spent generating spaced seeds " << time_spaced_seeds.count()  << " seconds" << std::endl;
-
+        std::cerr << "[mashz::map] Spaced seeds " << std::endl;
+        ales::printSpacedSeeds(map_parameters.spaced_seeds);
+        std::cerr << "[mashz::map] Spaced seed sensitivity "
+                  << map_parameters.spaced_seed_sensitivity << std::endl;
 
         //Build the sketch for reference
-        //skch::Sketch referSketch(map_parameters);
-        skch::Sketch referSketch(map_parameters, spaced_seeds);
+        skch::Sketch referSketch(map_parameters);
 
         std::chrono::duration<double> timeRefSketch = skch::Time::now() - t0;
         std::cerr << "[mashz::map] time spent computing the reference index: " << timeRefSketch.count() << " sec" << std::endl;
@@ -68,8 +62,7 @@ int main(int argc, char** argv) {
         //Map the sequences in query file
         t0 = skch::Time::now();
 
-        //skch::Map mapper = skch::Map(map_parameters, referSketch);
-        skch::Map mapper = skch::Map(map_parameters, referSketch, spaced_seeds);
+        skch::Map mapper = skch::Map(map_parameters, referSketch);
 
         std::chrono::duration<double> timeMapQuery = skch::Time::now() - t0;
         std::cerr << "[mashz::map] time spent mapping the query: " << timeMapQuery.count() << " sec" << std::endl;

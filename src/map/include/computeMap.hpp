@@ -94,21 +94,10 @@ namespace skch
        * @param[in] refSketch   reference sketch
        * @param[in] f           optional user defined custom function to post process the reported mapping results
        */
-      Map(const skch::Parameters &p, const skch::Sketch &refsketch,
-          PostProcessResultsFn_t f = nullptr) :
+      Map(const skch::Parameters &p, const skch::Sketch &refsketch, PostProcessResultsFn_t f = nullptr) :
         param(p),
         refSketch(refsketch),
         processMappingResults(f)
-    {
-      this->mapQuery();
-    }
-
-    Map(const skch::Parameters &p, const skch::Sketch &refsketch,
-        std::vector<ales::spaced_seed> &sp_seeds, PostProcessResultsFn_t f = nullptr) :
-      param(p),
-      refSketch(refsketch),
-      processMappingResults(f),
-      spaced_seeds(sp_seeds)
     {
       this->mapQuery();
     }
@@ -514,11 +503,10 @@ namespace skch
 
           ///1. Compute the minimizers
 
-          CommonFunc::addMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter);
-          if (spaced_seeds.empty()) {
+          if (param.spaced_seeds.empty()) {
             CommonFunc::addMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter);
           } else {
-            CommonFunc::addSpacedSeedMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter, spaced_seeds);
+            CommonFunc::addSpacedSeedMinimizers(Q.minimizerTableQuery, Q.seq, Q.len, param.kmerSize, param.windowSize, param.alphabetSize, Q.seqCounter, param.spaced_seeds);
           }
 
 #ifdef DEBUG

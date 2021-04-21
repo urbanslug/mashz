@@ -1466,29 +1466,31 @@ namespace ales {
     size_t length;
   };
 
+  struct spaced_seeds {
+    std::vector<spaced_seed> seeds;
+    double sensitivity;
+  };
+
   void printSpacedSeeds(std::vector<spaced_seed> &spaced_seeds) {
     for (auto &sp: spaced_seeds) {
-      std::cerr << sp.seed << std::endl;
+      std::cerr << "\t" << sp.seed << std::endl;
     }
-    std::cerr<<std::endl;
   }
 
-
-  std::vector<spaced_seed> generate_spaced_seeds(int weight, int number_of_seeds, float similarity, int region_length) {
+  spaced_seeds generate_spaced_seeds(int weight, int number_of_seeds, float similarity, int region_length) {
     // set parameters
     w=weight; k=number_of_seeds; p=similarity; N=region_length;
 
     char** raw_spaced_seeds = ales_wrapper();
-    std::vector<spaced_seed> spaced_seeds;
+    std::vector<spaced_seed> sp;
 
     for (uint32_t i=0; i<number_of_seeds; i++) {
       char* s = raw_spaced_seeds[i];
-      spaced_seeds.push_back(spaced_seed{s, strlen(s)});
+      sp.push_back(spaced_seed{s, strlen(s)});
     }
 
-    printSpacedSeeds(spaced_seeds);
-    std::cerr << "Sensitivity " << sens << std::endl;
-    return spaced_seeds;
+    spaced_seeds k = spaced_seeds{sp, sens};
+    return k;
   }
 }
 #endif

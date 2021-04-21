@@ -14,6 +14,21 @@
 
 namespace yeet {
 
+  std::vector<std::string> split(string s, string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    string token;
+    vector<string> res;
+
+    while ((pos_end = s.find (delimiter, pos_start)) != string::npos) {
+      token = s.substr (pos_start, pos_end - pos_start);
+      pos_start = pos_end + delim_len;
+      res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+  }
+
 struct Parameters {
     bool approx_mapping = false;
     bool remapping = false;
@@ -33,6 +48,7 @@ void parse_args(int argc,
     args::ValueFlag<std::string> target_sequence_file_list(parser, "targets", "alignment target file list", {'L', "target-file-list"});
     args::PositionalList<std::string> query_sequence_files(parser, "queries", "query sequences");
     args::ValueFlag<std::string> query_sequence_file_list(parser, "queries", "alignment query file list", {'Q', "query-file-list"});
+
     // mashmap arguments
     args::ValueFlag<uint64_t> segment_length(parser, "N", "segment length for mapping [default: 5000]", {'s', "segment-length"});
     args::ValueFlag<uint64_t> block_length_min(parser, "N", "keep mappings with at least this block length [default: 3*segment-length]", {'l', "block-length-min"});
@@ -48,6 +64,8 @@ void parse_args(int argc,
     args::ValueFlag<char> skip_prefix(parser, "C", "skip mappings when the query and target have the same prefix before the given character C", {'Y', "skip-prefix"});
     args::Flag approx_mapping(parser, "approx-map", "skip base-level alignment, producing an approximate mapping in PAF", {'m',"approx-map"});
     args::Flag no_merge(parser, "no-merge", "don't merge consecutive segment-level mappings", {'M', "no-merge"});
+    args::ValueFlag<std::string> spaced_seed_params(parser, "spaced-seed", "Params that ALeS uses to generate spaced seeds <weight_of_seed> <number_of_seeds> <similarity> <region_length>", {'A', "spaced-seed"});
+
     // align parameters
     args::ValueFlag<std::string> align_input_paf(parser, "FILE", "derive precise alignments for this input PAF", {'i', "input-paf"});
     args::ValueFlag<int> wflambda_segment_length(parser, "N", "wflambda segment length: size (in bp) of segment mapped in hierarchical WFA problem [default: 200]", {'W', "wflamda-segment"});
@@ -100,11 +118,12 @@ void parse_args(int argc,
             align_parameters.querySequences.push_back(q);
         }
     }
+
     if (query_sequence_file_list) {
         skch::parseFileList(args::get(query_sequence_file_list), map_parameters.querySequences);
         skch::parseFileList(args::get(query_sequence_file_list), align_parameters.querySequences);
     }
-    
+
     map_parameters.alphabetSize = 4;
 
     if (map_filter_mode) {
@@ -119,6 +138,48 @@ void parse_args(int argc,
         }
     } else {
         map_parameters.filterMode = skch::filter::MAP;
+    }
+
+    if (spaced_seed_params) {
+      std::string foobar = args::get(spaced_seed_params);
+
+      // delimeters can be full colon (:) or a space
+      char delimeter;
+      if (foobar.find(' ') !=  std::string::npos) {
+        delimeter = ' ';
+      } else if (foobar.find(':') !=  std::string::npos) {
+        delimeter = ':';
+      } else {
+        std::cerr << "[mashz] ERROR, skch::parseandSave, mashz expects either space or : for to seperate spaced seed params" << std::endl;
+        exit(1);
+      }
+
+      std::string delimeter_str(1, delimeter);
+      std::vector<std::string> p = split(foobar, delimeter_str);
+      if (p.size() != 4) {
+        std::cerr << "[mashz] ERROR, skch::parseandSave, there should be four arguments for spaced seeds" << std::endl;
+        exit(1);
+      }
+
+      uint32_t seed_weight   = stoi(p[0]);
+      uint32_t seed_count    = stoi(p[1]);
+      float similarity       = stof(p[2]);
+      uint32_t region_length = stoi(p[3]);
+
+      // Generate an ALeS params struct
+      auto k = skch::ales_params{seed_weight, seed_count, similarity, region_length};
+
+      std::cerr << "[mashz::map] INFO, ALeS, Generating spaced seeds" << std::endl;
+      auto t0 = skch::Time::now();
+      ales::spaced_seeds sps = ales::generate_spaced_seeds(seed_weight, seed_count, similarity, region_length);
+      std::vector<ales::spaced_seed> sp = sps.seeds;
+      std::chrono::duration<double> time_spaced_seeds = skch::Time::now() - t0;
+      std::cerr << "[mashz::map] INFO, ALeS, Time spent generating spaced seeds " << time_spaced_seeds.count()  << " seconds" << std::endl;
+
+      map_parameters.spaced_seed_sensitivity = sps.sensitivity;
+      map_parameters.spaced_seed_params = k;
+      map_parameters.use_spaced_seeds = true;
+      map_parameters.spaced_seeds = sp;
     }
 
     map_parameters.split = !args::get(no_split);

@@ -151,6 +151,12 @@ sequences shorter than segment length will be ignored", ArgvParser::OptionRequir
     std::cerr << "[mashz::map] Mapping output file = " << parameters.outFileName << std::endl;
     std::cerr << "[mashz::map] Filter mode = " << parameters.filterMode << " (1 = map, 2 = one-to-one, 3 = none)" << std::endl;
     std::cerr << "[mashz::map] Execution threads  = " << parameters.threads << std::endl;
+    std::cerr << "[mashz::map] Spaced seed parameters  = "
+              << parameters.spaced_seed_params.weight << " "
+              << parameters.spaced_seed_params.seed_count << " "
+              << parameters.spaced_seed_params.similarity << " "
+              << parameters.spaced_seed_params.region_length
+              << std::endl;
   }
 
   /**
