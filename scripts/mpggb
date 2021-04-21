@@ -357,7 +357,9 @@ printf "\n----------------- Generate bandage viz ------------------\n"
 Bandage image \
         $odgi_gfa \
         $bandage_viz \
-        --nodewidth $bandage_node_width
+        --height 2000 \
+        --nodewidth $bandage_node_width \
+        --linear
 
 
 # move gnuplot stuff
