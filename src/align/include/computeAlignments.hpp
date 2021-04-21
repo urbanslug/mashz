@@ -300,7 +300,8 @@ namespace align
               };
 
           // writer, picks output from queue and writes it to our output stream
-          std::ofstream outstrm(param.pafOutputFile);
+          std::ofstream outstrm(param.pafOutputFile, ios::app);
+
           auto writer_thread =
               [&](void) {
                   while (true) {
@@ -446,7 +447,8 @@ namespace align
         assert(queryLen <= querySize);
 
         //Compute alignment
-        auto t0 = skch::Time::now();
+
+        //auto t0 = skch::Time::now();
 
 #ifdef DEBUG
         std::cerr << "INFO, align::Aligner::doAlignment, WFA execution starting, query region length = " << queryLen

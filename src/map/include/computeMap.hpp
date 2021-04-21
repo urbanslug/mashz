@@ -205,7 +205,10 @@ namespace skch
         //Filter over reference axis and report the mappings
         if (param.filterMode == filter::ONETOONE)
         {
-          skch::Filter::ref::filterMappings(allReadMappings, this->refSketch);
+          skch::Filter::ref::filterMappings(allReadMappings, this->refSketch,
+                                            param.secondaryToKeep
+                                           // (input->len < param.segLength ? param.shortSecondaryToKeep : param.secondaryToKeep)
+                                            );
 
           //Re-sort mappings by input order of query sequences
           //This order may be needed for any post analysis of output
@@ -381,24 +384,17 @@ namespace skch
           }
         }
 
-        // remove short merged mappings when we are mapping split
-        if (split_mapping && param.mergeMappings) {
-            //filter mappings best over query sequence axis
-            if (param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE) {
-                skch::Filter::query::filterMappings(output->readMappings,
-                                                    (input->len < param.segLength ?
-                                                     param.shortSecondaryToKeep
-                                                     : param.secondaryToKeep));
-            }
+        //filter mappings best over query sequence axis
+        if (param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE) {
+            skch::Filter::query::filterMappings(output->readMappings,
+                                                (input->len < param.segLength ?
+                                                 param.shortSecondaryToKeep
+                                                 : param.secondaryToKeep));
+        }
+
+        // remove short merged mappings when we are merging
+        if (split_mapping) {
             this->filterShortMappings(output->readMappings);
-        } else {
-            // apply trivial indexed filtering
-            if (param.filterMode == filter::MAP || param.filterMode == filter::ONETOONE) {
-                skch::Filter::query::filterUnmergedMappings(output->readMappings,
-                                                            (input->len < param.segLength ?
-                                                             param.shortSecondaryToKeep
-                                                             : param.secondaryToKeep));
-            }
         }
 
         // remove self-mode don't-maps
@@ -548,7 +544,7 @@ namespace skch
             }
           }
 
-          int minimumHits = Stat::estimateMinimumHitsRelaxed(Q.sketchSize, param.kmerSize, param.percentageIdentity);
+          int minimumHits = Stat::estimateMinimumHitsRelaxed(Q.sketchSize, param.kmerSize, param.percentageIdentity, param.confidence_interval);
 
           this->computeL1CandidateRegions(Q, seedHitsL1, minimumHits, l1Mappings);
 
@@ -610,8 +606,8 @@ namespace skch
 
       // helper to get the prefix of a string
       const std::string prefix(const std::string& s, const char c) {
-          //std::cerr << "prefix of " << s << " by " << c << " is " << s.substr(0, s.find(c)) << std::endl;
-          return s.substr(0, s.find(c));
+          //std::cerr << "prefix of " << s << " by " << c << " is " << s.substr(0, s.find_last_of(c)) << std::endl;
+          return s.substr(0, s.find_last_of(c));
       }
 
       /**
@@ -633,10 +629,12 @@ namespace skch
             float mash_dist = Stat::j2md(1.0 * l2.sharedSketchSize/Q.sketchSize, param.kmerSize);
 
             //Compute lower bound to mash distance within 90% confidence interval
-            float mash_dist_lower_bound = Stat::md_lower_bound(mash_dist, Q.sketchSize, param.kmerSize, skch::fixed::confidence_interval);
+            float mash_dist_lower_bound = Stat::md_lower_bound(mash_dist, Q.sketchSize, param.kmerSize, param.confidence_interval);
 
             float nucIdentity = (1 - mash_dist);
             float nucIdentityUpperBound = (1 - mash_dist_lower_bound);
+
+
 
             //Report the alignment if it passes our identity threshold and,
             // if we are in all-vs-all mode, it isn't a self-mapping,
@@ -986,7 +984,7 @@ namespace skch
                    << "\t" << this->refSketch.metadata[e.refSeqId].name
                    << "\t" << this->refSketch.metadata[e.refSeqId].len
                    << "\t" << e.refStartPos 
-                   << "\t" << e.refEndPos + 1
+                   << "\t" << e.refEndPos
                    << "\t" << e.approxMatches
                    << "\t" << e.blockLength
                    << "\t" << fakeMapQ

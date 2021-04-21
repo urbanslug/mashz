@@ -1,3 +1,4 @@
+#include <chrono>
 #include "wflign_wfa.hpp"
 
 namespace wflign {
@@ -7,6 +8,8 @@ namespace wavefront {
 void wflign_affine_wavefront(
     std::ostream& out,
     const bool& merge_alignments,
+    const bool& emit_md_tag,
+    const bool& paf_format_else_sam,
     const std::string& query_name,
     const char* query,
     const uint64_t& query_total_length,
@@ -26,36 +29,36 @@ void wflign_affine_wavefront(
     //const int& wfa_max_distance_threshold) {
 
     // set up our implicit matrix
-    uint64_t steps_per_segment = 2;
-    uint64_t step_size = segment_length / steps_per_segment;
+    const uint64_t steps_per_segment = 2;
+    const uint64_t step_size = segment_length / steps_per_segment;
 
     // Pattern & Text
     const int pattern_length = query_length / step_size;
     const int text_length = target_length / step_size;
 
-    // use exact WFA locally
-    const int wfa_min_wavefront_length = 0;
-    const int wfa_max_distance_threshold = 0;
+    // use reduced WFA locally
+    const int wfa_min_wavefront_length = segment_length / 16;
+    const int wfa_max_distance_threshold = segment_length / 8;
 
     // Allocate MM
     wflambda::mm_allocator_t* const wflambda_mm_allocator = wflambda::mm_allocator_new(BUFFER_SIZE_8M);
     // Set penalties
     wflambda::affine_penalties_t wflambda_affine_penalties = {
         .match = 0,
-        .mismatch = 4,
-        .gap_opening = 6,
-        .gap_extension = 2,
+        .mismatch = 7,
+        .gap_opening = 11,
+        .gap_extension = 1,
     };
     // Init Affine wflambda
     wflambda::affine_wavefronts_t* affine_wavefronts;
     if (wflambda_min_wavefront_length || wflambda_max_distance_threshold) {
         affine_wavefronts = wflambda::affine_wavefronts_new_reduced(
-            pattern_length, text_length, &wflambda_affine_penalties,
+            pattern_length+1, text_length+1, &wflambda_affine_penalties,
             wflambda_min_wavefront_length, wflambda_max_distance_threshold,
             NULL, wflambda_mm_allocator);
     } else {
         affine_wavefronts = wflambda::affine_wavefronts_new_complete(
-            pattern_length, text_length, &wflambda_affine_penalties, NULL, wflambda_mm_allocator);
+            pattern_length+1, text_length+1, &wflambda_affine_penalties, NULL, wflambda_mm_allocator);
     }
 
     // save computed alignments in a pair-indexed patchmap
@@ -71,23 +74,19 @@ void wflign_affine_wavefront(
     wfa::mm_allocator_t* const wfa_mm_allocator = wfa::mm_allocator_new(BUFFER_SIZE_8M);
     wfa::affine_penalties_t wfa_affine_penalties = {
         .match = 0,
-        .mismatch = 4,
-        .gap_opening = 6,
+        .mismatch = 7,
+        .gap_opening = 11,
         .gap_extension = 1,
     };
-    const uint64_t minhash_kmer_size = 19;
+    const uint64_t minhash_kmer_size = 13;
     int v_max = 0;
     int h_max = 0;
 
-    auto extend_match =
-        [&](const int& v,
-            const int& h) {
+    auto extend_match = [&](const int& v, const int& h) {
             bool aligned = false;
-            uint64_t k = encode_pair(v, h);
-            if (v >= 0 && h >= 0
-                && v < pattern_length
-                && h < text_length) {
-                auto f = alignments.find(k);
+            if (v >= 0 && h >= 0 && v < pattern_length && h < text_length) {
+                uint64_t k = encode_pair(v, h);
+                auto f = alignments.find(k); //TODO: it can be removed using an edit-distance mode as high-level of WF-inception
                 if (f != alignments.end()) {
                     aligned = true;
                 } else  {
@@ -95,9 +94,9 @@ void wflign_affine_wavefront(
                                             : query_length - segment_length);
                     uint64_t target_begin = (h < text_length-1 ? h * step_size
                                              : target_length - segment_length);
-                    alignment_t* aln = new alignment_t();
+                    auto* aln = new alignment_t();
                     aligned =
-                        do_alignment(
+                        do_wfa_segment_alignment(
                             query_name,
                             query,
                             query_sketches[v],
@@ -127,23 +126,23 @@ void wflign_affine_wavefront(
                         v_max = v;
                         if (v >= wflambda_max_distance_threshold) {
                             auto& s = query_sketches[v - wflambda_max_distance_threshold];
-                            if (s != nullptr) {
-                                delete s;
-                                s = nullptr;
-                            }
+                            // The C++ language guarantees that delete p will do nothing if p is equal to NULL
+                            delete s;
+                            s = nullptr;
                         }
                     }
                     if (h > h_max) {
                         h_max = h;
                         if (h >= wflambda_max_distance_threshold) {
                             auto& s = target_sketches[h - wflambda_max_distance_threshold];
-                            if (s != nullptr) {
-                                delete s;
-                                s = nullptr;
-                            }
+                            // The C++ language guarantees that delete p will do nothing if p is equal to NULL
+                            delete s;
+                            s = nullptr;
                         }
                     }
                 }
+            } else if (h < 0 || v < 0) { //TODO: it can be removed using an edit-distance mode as high-level of WF-inception
+                aligned = true;
             }
             return aligned;
         };
@@ -152,18 +151,18 @@ void wflign_affine_wavefront(
     // then trim the cigars of successive mappings
     //
     std::vector<alignment_t*> trace;
-    
-    auto trace_match =
-        [&](const int& v, const int& h) {
+
+    auto trace_match = [&](const int& v, const int& h) {
+        if (v < 0 || h < 0 || v > pattern_length || h > text_length) {
+            return false;
+        } else {
             uint64_t k = encode_pair(v, h);
-            auto f = alignments.find(k);
-            if (f != alignments.end()) {
-                trace.push_back(f->second);
-                return true;
-            } else {
-                return false;
-            }
-        };
+            trace.push_back(alignments[k]);
+            return true;
+        }
+    };
+
+    auto start_time = std::chrono::steady_clock::now();
 
     // Align
     wflambda::affine_wavefronts_align(
@@ -173,6 +172,9 @@ void wflign_affine_wavefront(
         pattern_length,
         text_length);
 
+    long elapsed_time_wflambda_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+
+//#define WFLIGN_DEBUG
 #ifdef WFLIGN_DEBUG
     // get alignment score
     const int score = wflambda::edit_cigar_score_gap_affine(
@@ -182,30 +184,46 @@ void wflign_affine_wavefront(
 #endif
 
     // clean up sketches
+    // The C++ language guarantees that delete p will do nothing if p is equal to NULL
     for (auto& s : query_sketches) {
-        if (s != nullptr) {
-            delete s;
-            s = nullptr;
-        }
+        delete s;
+        s = nullptr;
     }
     for (auto& s : target_sketches) {
-        if (s != nullptr) {
-            delete s;
-            s = nullptr;
-        }
+        delete s;
+        s = nullptr;
     }
-
-    // clean up our WFA allocator
-    wfa::mm_allocator_delete(wfa_mm_allocator);
 
     // todo: implement alignment identifier based on hash of the input, params, and commit
     // annotate each PAF record with it and the full alignment score
 
     // Trim alignments that overlap in the query
     if (!trace.empty()) {
+//#define VALIDATE_WFA_WFLIGN
+#ifdef VALIDATE_WFA_WFLIGN
+        if (!trace.front()->validate(query, target)) {
+            std::cerr << "first traceback is wrong" << std::endl;
+            trace.front()->display();
+            assert(false);
+        }
+#endif
         for (auto x = trace.rbegin()+1; x != trace.rend(); ++x) {
             auto& curr = **x;
             auto& last = **(x-1);
+            /*
+            std::cerr << "splicing" << std::endl;
+            std::cerr << "curr = ";
+            curr.display();
+            std::cerr << "last = ";
+            last.display();
+            */
+#ifdef VALIDATE_WFA_WFLIGN
+            if (curr.ok && !curr.validate(query, target)) {
+                std::cerr << "curr traceback is wrong before trimming @ " << curr.j << " " << curr.i << std::endl;
+                curr.display();
+                assert(false);
+            }
+#endif
             trace_pos_t last_pos = { last.j, last.i,
                                      &last.edit_cigar,
                                      last.edit_cigar.begin_offset };
@@ -244,10 +262,16 @@ void wflign_affine_wavefront(
                 // we want to remove any possible overlaps in query or target
                 // walk back last until we don't overlap in i or j
                 // recording the distance walked as an additional trim on last
-                while (last_pos.j > curr_pos.j && last_pos.decr());
-                while (last_pos.j > curr_pos.j && curr_pos.incr());
-                while (last_pos.i > curr_pos.i && last_pos.decr());
-                while (last_pos.i > curr_pos.i && curr_pos.incr());
+                bool flip = false;
+                while (last_pos.j > curr_pos.j
+                       || last_pos.i > curr_pos.i) {
+                    if (flip) {
+                        last_pos.decr();
+                    } else {
+                        curr_pos.incr();
+                    }
+                    flip ^= true;
+                }
                 trim_last = (last.j + last.query_length) - last_pos.j + 1;
                 trim_curr = curr_pos.j - curr.j + 1;
                 assert(last_pos.j <= curr_pos.j);
@@ -257,19 +281,47 @@ void wflign_affine_wavefront(
             // assign our cigar trim
             if (trim_last > 0) {
                 last.trim_back(trim_last);
+#ifdef VALIDATE_WFA_WFLIGN
+                if (last.ok && !last.validate(query, target)) {
+                    std::cerr << "traceback is wrong after last trimming @ " << last.j << " " << last.i << std::endl;
+                    last.display();
+                    assert(false);
+                }
+#endif
             }
+
             if (trim_curr > 0) {
                 curr.trim_front(trim_curr);
+#ifdef VALIDATE_WFA_WFLIGN
+                if (curr.ok && !curr.validate(query, target)) {
+                    std::cerr << "traceback is wrong after curr trimming @ " << curr.j << " " << curr.i << std::endl;
+                    curr.display();
+                    assert(false);
+                }
+#endif
             }
+            /*
+            std::cerr << "spliced" << std::endl;
+            std::cerr << "curr = ";
+            curr.display();
+            std::cerr << "last = ";
+            last.display();
+            std::cerr << std::endl;
+            */
         }
 
         if (merge_alignments) {
             // write a merged alignment
-            write_merged_alignment(out, trace,
+            write_merged_alignment(out, trace, wfa_mm_allocator, &wfa_affine_penalties,
+                                   emit_md_tag, paf_format_else_sam,
+                                   query,
                                    query_name, query_total_length, query_offset, query_length,
                                    query_is_rev,
+                                   target,
                                    target_name, target_total_length, target_offset, target_length,
-                                   min_identity);
+                                   min_identity,
+                                   segment_length * 32,
+                                   elapsed_time_wflambda_ms);
         } else {
             for (auto x = trace.rbegin(); x != trace.rend(); ++x) {
                 //std::cerr << "on alignment" << std::endl;
@@ -281,6 +333,9 @@ void wflign_affine_wavefront(
             }
         }
     }
+
+    // clean up our WFA allocator
+    wfa::mm_allocator_delete(wfa_mm_allocator);
 
     // Free
     wflambda::affine_wavefronts_delete(affine_wavefronts);
@@ -295,7 +350,7 @@ void wflign_affine_wavefront(
 // order them and write them out
 // needed--- 0-cost deduplication of alignment regions (how????)
 //     --- trim the alignment back to the first 1/2 of the query
-bool do_alignment(
+bool do_wfa_segment_alignment(
     const std::string& query_name,
     const char* query,
     std::vector<rkmh::hash_t>*& query_sketch,
@@ -321,22 +376,21 @@ bool do_alignment(
     // first make the sketches if we haven't yet
     if (query_sketch == nullptr) {
         query_sketch = new std::vector<rkmh::hash_t>();
-        *query_sketch = rkmh::hash_sequence(query+j, segment_length, minhash_kmer_size, segment_length/10);
+        *query_sketch = rkmh::hash_sequence(query+j, segment_length, minhash_kmer_size, segment_length/8);
     }
     if (target_sketch == nullptr) {
         target_sketch = new std::vector<rkmh::hash_t>();
-        *target_sketch = rkmh::hash_sequence(target+i, segment_length, minhash_kmer_size, segment_length/10);
+        *target_sketch = rkmh::hash_sequence(target+i, segment_length, minhash_kmer_size, segment_length/8);
     }
 
     // first check if our mash dist is inbounds
-    double mash_dist = rkmh::compare(*query_sketch, *target_sketch, minhash_kmer_size);
-    //std::cerr << "mash_dist = " << mash_dist << std::endl;
+    const double mash_dist = rkmh::compare(*query_sketch, *target_sketch, minhash_kmer_size);
 
-    int max_score = segment_length * 0.8;
+    const int max_score = segment_length;
 
     // the mash distance generally underestimates the actual divergence
     // but when it's high we are almost certain that it's not a match
-    if (mash_dist > 0.9) {
+    if (mash_dist > 0.9) {// 0.618034) {
         // if it isn't, return false
         aln.score = max_score;
         aln.ok = false;
@@ -370,7 +424,24 @@ bool do_alignment(
         // copy our edit cigar if we aligned
         aln.ok = aln.score < max_score;
         if (aln.ok) {
+            // correct X/M errors in the cigar
+            hack_cigar(affine_wavefronts->edit_cigar, query, target, segment_length, segment_length, aln.j, aln.i);
+#ifdef VALIDATE_WFA_WFLIGN
+            if (!validate_cigar(affine_wavefronts->edit_cigar, query, target, segment_length, segment_length, aln.j, aln.i)) {
+                std::cerr << "cigar failure at alignment " << aln.j << " " << aln.i << std::endl;
+                unpack_display_cigar(affine_wavefronts->edit_cigar, query, target, segment_length, segment_length, aln.j, aln.i);
+                std::cerr << ">query" << std::endl << std::string(query+j, segment_length) << std::endl;
+                std::cerr << ">target" << std::endl << std::string(target+i, segment_length) << std::endl;
+                assert(false);
+            }
+#endif
             wflign_edit_cigar_copy(&aln.edit_cigar, &affine_wavefronts->edit_cigar);
+#ifdef VALIDATE_WFA_WFLIGN
+            if (!validate_cigar(affine_wavefronts->edit_cigar, query, target, segment_length, segment_length, aln.j, aln.i)) {
+                std::cerr << "cigar failure after cigar copy in alignment " << aln.j << " " << aln.i << std::endl;
+                assert(false);
+            }
+#endif
         }
         // cleanup wavefronts to keep memory low
         affine_wavefronts_delete(affine_wavefronts);
@@ -379,24 +450,285 @@ bool do_alignment(
     }
 }
 
+void do_wfa_patch_alignment(
+    const char* query,
+    const uint64_t& j,
+    const uint64_t& query_length,
+    const char* target,
+    const uint64_t& i,
+    const uint64_t& target_length,
+    const int min_wavefront_length,
+    const int max_distance_threshold,
+    wfa::mm_allocator_t* const mm_allocator,
+    wfa::affine_penalties_t* const affine_penalties,
+    alignment_t& aln) {
+
+    //std::cerr << "do_wfa_patch " << j << " " << query_length << " " << i << " " << target_length << std::endl;
+
+    wfa::affine_wavefronts_t* affine_wavefronts;
+    if (min_wavefront_length || max_distance_threshold) {
+        // adaptive affine WFA setup
+        affine_wavefronts = affine_wavefronts_new_reduced(
+            target_length, query_length, affine_penalties,
+            min_wavefront_length, max_distance_threshold,
+            NULL, mm_allocator);
+    } else {
+        // exact WFA
+        affine_wavefronts = affine_wavefronts_new_complete(
+            target_length, query_length, affine_penalties, NULL, mm_allocator);
+    }
+
+    aln.j = j;
+    aln.i = i;
+    aln.query_length = query_length;
+    aln.target_length = target_length;
+
+    aln.score = wfa::affine_wavefronts_align(
+        affine_wavefronts,
+        target+i,
+        target_length,
+        query+j,
+        query_length);
+
+    aln.ok = true;
+    if (aln.ok) {
+
+        // correct X/M errors in the cigar
+        hack_cigar(affine_wavefronts->edit_cigar, query, target, query_length, target_length, aln.j, aln.i);
+#ifdef VALIDATE_WFA_WFLIGN
+        if (!validate_cigar(affine_wavefronts->edit_cigar, query, target, query_length, target_length, aln.j, aln.i)) {
+            std::cerr << "cigar failure at alignment " << aln.j << " " << aln.i << std::endl;
+            unpack_display_cigar(affine_wavefronts->edit_cigar, query, target, query_length, target_length, aln.j, aln.i);
+            std::cerr << ">query" << std::endl << std::string(query+j, query_length) << std::endl;
+            std::cerr << ">target" << std::endl << std::string(target+i, target_length) << std::endl;
+            assert(false);
+        }
+#endif
+        wflign_edit_cigar_copy(&aln.edit_cigar, &affine_wavefronts->edit_cigar);
+    }
+    // cleanup wavefronts to keep memory low
+    affine_wavefronts_delete(affine_wavefronts);
+
+}
+
+EdlibAlignResult do_edlib_patch_alignment(
+    const char* query,
+    const uint64_t& j,
+    const uint64_t& query_length,
+    const char* target,
+    const uint64_t& i,
+    const uint64_t& target_length) {
+
+    //std::cerr << "do_edlib_patch " << j << " " << query_length << " " << i << " " << target_length << std::endl;
+
+    auto edlib_config = edlibNewAlignConfig(-1,
+                                            EDLIB_MODE_NW,
+                                            EDLIB_TASK_PATH,
+                                            NULL, 0);
+
+    return edlibAlign(query+j, query_length,
+                      target+i, target_length,
+                      edlib_config);
+
+}
+
+bool hack_cigar(
+    wfa::edit_cigar_t& cigar,
+    const char* query, const char* target,
+    const uint64_t& query_aln_len, const uint64_t& target_aln_len,
+    uint64_t j, uint64_t i) {
+    const int start_idx = cigar.begin_offset;
+    const int end_idx = cigar.end_offset;
+    uint64_t j_max = j + query_aln_len;
+    uint64_t i_max = i + target_aln_len;
+    bool ok = true;
+    //std::cerr << "start to end " << start_idx << " " << end_idx << std::endl;
+    for (int c = start_idx; c < end_idx; c++) {
+        if (j >= j_max && i >= i_max) {
+            cigar.end_offset = c;
+            ok = false;
+            break;
+        }
+        // if new sequence of same moves started
+        switch (cigar.operations[c]) {
+        case 'M':
+            // check that we match
+            if (query[j] != target[i]) {
+                //std::cerr << "mismatch @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                cigar.operations[c] = 'X';
+                ok = false;
+            }
+            if (j >= j_max) {
+                //std::cerr << "query out of bounds @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                cigar.operations[c] = 'D';
+                ok = false;
+            }
+            if (i >= i_max) {
+                //std::cerr << "target out of bounds @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                cigar.operations[c] = 'I';
+                ok = false;
+            }
+            ++j; ++i;
+            break;
+        case 'X':
+            if (query[j] == target[i]) {
+                cigar.operations[c] = 'M';
+            }
+            ++j; ++i;
+            break;
+        case 'I':
+            ++j;
+            break;
+        case 'D':
+            ++i;
+            break;
+        default:
+            break;
+        }
+    }
+    return ok;
+}
+
+/*
+wfa::edit_cigar_t filter_short_matches(
+    const wfa::edit_cigar_t& cigar) {
+// todo
+}
+*/
+
+bool validate_cigar(
+    const wfa::edit_cigar_t& cigar,
+    const char* query, const char* target,
+    const uint64_t& query_aln_len, const uint64_t& target_aln_len,
+    uint64_t j, uint64_t i) {
+    // check that our cigar matches where it claims it does
+    const int start_idx = cigar.begin_offset;
+    const int end_idx = cigar.end_offset;
+    uint64_t j_max = j + query_aln_len;
+    uint64_t i_max = i + target_aln_len;
+    bool ok = true;
+    //std::cerr << "start to end " << start_idx << " " << end_idx << std::endl;
+    for (int c = start_idx; c < end_idx; c++) {
+        // if new sequence of same moves started
+        switch (cigar.operations[c]) {
+        case 'M':
+            // check that we match
+            if (query[j] != target[i]) {
+                std::cerr << "mismatch @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                ok = false;
+            }
+            if (j >= j_max) {
+                std::cerr << "query out of bounds @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                ok = false;
+            }
+            if (i >= i_max) {
+                std::cerr << "target out of bounds @ " << j << " " << i << " " << query[j] << " " << target[i] << std::endl;
+                ok = false;
+            }
+            ++j; ++i;
+            break;
+        case 'X':
+            ++j; ++i;
+            break;
+        case 'I':
+            ++j;
+            break;
+        case 'D':
+            ++i;
+            break;
+        default:
+            break;
+        }
+    }
+    return ok;
+}
+
+bool unpack_display_cigar(
+    const wfa::edit_cigar_t& cigar,
+    const char* query, const char* target,
+    const uint64_t& query_aln_len, const uint64_t& target_aln_len,
+    uint64_t j, uint64_t i) {
+    // check that our cigar matches where it claims it does
+    const int start_idx = cigar.begin_offset;
+    const int end_idx = cigar.end_offset;
+    uint64_t j_max = j + query_aln_len;
+    uint64_t i_max = i + target_aln_len;
+    //std::cerr << "start to end " << start_idx << " " << end_idx << std::endl;
+    for (int c = start_idx; c < end_idx; c++) {
+        // if new sequence of same moves started
+        switch (cigar.operations[c]) {
+        case 'M':
+            // check that we match
+            std::cerr << "M" << " "
+                      << j << " " << i << " "
+                      << "q:" << query[j] << " "
+                      << "t:" << target[i] << " "
+                      << (query[j] == target[i] ? " " : "👾")
+                      << (j >= j_max ? "⚡" : " ")
+                      << (i >= i_max ? "🔥" : " ")
+                      << std::endl;
+            ++j; ++i;
+            break;
+        case 'X':
+            std::cerr << "X" << " "
+                      << j << " " << i << " "
+                      << "q:" << query[j] << " "
+                      << "t:" << target[i] << " "
+                      << (query[j] != target[i] ? " " : "👾")
+                      << (j >= j_max ? "⚡" : " ")
+                      << (i >= i_max ? "🔥" : " ")
+                      << std::endl;
+            ++j; ++i;
+            break;
+        case 'I':
+            std::cerr << "I" << " "
+                      << j << " " << i << " "
+                      << "q:" << query[j] << " "
+                      << "t:" << "|" << "  "
+                      << (j >= j_max ? "⚡" : " ")
+                      << (i >= i_max ? "🔥" : " ")
+                      << std::endl;
+            ++j;
+            break;
+        case 'D':
+            std::cerr << "D" << " "
+                      << j << " " << i << " "
+                      << "q:" << "|" << " "
+                      << "t:" << target[i] << "  "
+                      << (j >= j_max ? "⚡" : " ")
+                      << (i >= i_max ? "🔥" : " ")
+                      << std::endl;
+            ++i;
+            break;
+        default:
+            break;
+        }
+    }
+    return true;
+}
+
 void write_merged_alignment(
     std::ostream& out,
-    const std::vector<alignment_t*> trace,
+    const std::vector<alignment_t*>& trace,
+    wfa::mm_allocator_t* const mm_allocator,
+    wfa::affine_penalties_t* const affine_penalties,
+    const bool& emit_md_tag,
+    const bool& paf_format_else_sam,
+    const char* query,
     const std::string& query_name,
     const uint64_t& query_total_length,
     const uint64_t& query_offset,
     const uint64_t& query_length,
     const bool& query_is_rev,
+    const char* target,
     const std::string& target_name,
     const uint64_t& target_total_length,
     const uint64_t& target_offset,
     const uint64_t& target_length,
     const float& min_identity,
+    const uint64_t& dropout_rescue_max,
+    const long& elapsed_time_wflambda_ms,
     const bool& with_endline) {
-
-    if (trace.empty()) {
-        return;
-    }
 
     // we need to get the start position in the query and target
     // then run through the whole alignment building up the cigar
@@ -419,10 +751,11 @@ void write_merged_alignment(
     uint64_t target_end = 0;
     uint64_t total_score = 0;
 
-    double mash_dist_sum = 0;
+    //double mash_dist_sum = 0;
     uint64_t ok_alns = 0;
 
-    uint64_t l = 0;
+    auto start_time = std::chrono::steady_clock::now();
+
     for (auto x = trace.rbegin(); x != trace.rend(); ++x) {
         auto& aln = **x;
 
@@ -439,91 +772,140 @@ void write_merged_alignment(
 
             //std::cerr << "trace " << aln.j << " " << aln.i << std::endl;
 
-            char* cigar = alignmentToCigar(&aln.edit_cigar,
-                                           target_aligned_length,
-                                           query_aligned_length,
-                                           matches,
-                                           mismatches,
-                                           insertions,
-                                           inserted_bp,
-                                           deletions,
-                                           deleted_bp);
+#ifdef VALIDATE_WFA_WFLIGN
+            if (!validate_cigar(aln.edit_cigar, query, target, aln.query_length, aln.target_length, aln.j, aln.i)) {
+                std::cerr << "cigar failure at trace " << aln.j << " " << aln.i << std::endl;
+                assert(false);
+            }
+#endif
 
-            mash_dist_sum += aln.mash_dist;
-            total_query_aligned_length += query_aligned_length;
-            total_target_aligned_length += target_aligned_length;
+            char* cigar = wfa_alignment_to_cigar(&aln.edit_cigar,
+                                                 target_aligned_length,
+                                                 query_aligned_length,
+                                                 matches,
+                                                 mismatches,
+                                                 insertions,
+                                                 inserted_bp,
+                                                 deletions,
+                                                 deleted_bp);
+            // check the cigar!
+
+            //mash_dist_sum += aln.mash_dist;
 
             // add the delta in ref and query from the last alignment
-            if (query_end && aln.j > query_end) {
-                ++insertions;
-                int len = aln.j - query_end;
-                inserted_bp += len;
-                std::string x = std::to_string(len) + "I";
-                char* c = (char*) malloc(x.size() + 1);
-                std::memcpy(c, x.c_str(), x.size());
-                c[x.size()] = '\0';
-                cigarv.push_back(c);
-            }
-            if (target_end && aln.i > target_end) {
-                ++deletions;
-                int len = aln.i - target_end;
-                deleted_bp += len;
-                std::string x = std::to_string(len) + "D";
-                char* c = (char*) malloc(x.size() + 1);
-                std::memcpy(c, x.c_str(), x.size());
-                c[x.size()] = '\0';
-                cigarv.push_back(c);
+            const uint64_t min_wfa_length = 16;
+            const uint64_t min_edlib_length = 0;
+            const int min_wf_length = 8;
+            const int max_dist_threshold = 128;
+            uint64_t patch_target_aligned_length = 0;
+            uint64_t patch_query_aligned_length = 0;
+            int query_delta = aln.j - query_end;
+            int target_delta = aln.i - target_end;
+            if (query_end &&
+                query_delta > 0 && target_delta > 0 &&
+                query_delta < dropout_rescue_max && target_delta < dropout_rescue_max) {
+                char* patch_cigar = nullptr;
+                if (query_delta > min_wfa_length && target_delta > min_wfa_length) {
+                    alignment_t patch_aln;
+                    //std::cerr << "do_wfa_patch_alignment" << std::endl;
+                    do_wfa_patch_alignment(
+                        query, query_end, query_delta,
+                        target, target_end, target_delta,
+                        min_wf_length, max_dist_threshold,
+                        mm_allocator, affine_penalties, patch_aln);
+                    if (patch_aln.ok) {
+                        patch_cigar = wfa_alignment_to_cigar(&patch_aln.edit_cigar,
+                                                             patch_target_aligned_length,
+                                                             patch_query_aligned_length,
+                                                             matches,
+                                                             mismatches,
+                                                             insertions,
+                                                             inserted_bp,
+                                                             deletions,
+                                                             deleted_bp);
+                    }
+#ifdef VALIDATE_WFA_WFLIGN
+                    if (!validate_cigar(patch_aln.edit_cigar, query, target, patch_aln.query_length, patch_aln.target_length, patch_aln.j, patch_aln.i)) {
+                        std::cerr << "patch cigar failure at trace " << patch_aln.j << " " << patch_aln.i << std::endl;
+                        assert(false);
+                    }
+#endif
+                    // destroy the align
+                } else if (query_delta > min_edlib_length && target_delta > min_edlib_length) {
+                    //std::cerr << "do_edlib_patch_alignment" << std::endl;
+                    auto result = do_edlib_patch_alignment(
+                        query, query_end, query_delta,
+                        target, target_end, target_delta);
+                    if (result.status == EDLIB_STATUS_OK
+                        && result.alignmentLength != 0
+                        && result.editDistance >= 0) {
+                        patch_cigar = edlib_alignment_to_cigar(result.alignment,
+                                                               result.alignmentLength,
+                                                               patch_target_aligned_length,
+                                                               patch_query_aligned_length,
+                                                               matches,
+                                                               mismatches,
+                                                               insertions,
+                                                               inserted_bp,
+                                                               deletions,
+                                                               deleted_bp);
+                    }
+                    edlibFreeAlignResult(result);
+                }
+                if (patch_cigar != nullptr) {
+                    cigarv.push_back(patch_cigar);
+                }
+            } else {
+                if (query_end && aln.j > query_end) {
+                    ++insertions;
+                    const int len = aln.j - query_end;
+                    inserted_bp += len;
+                    std::string x = std::to_string(len) + "I";
+                    char* c = (char*) malloc(x.size() + 1);
+                    std::memcpy(c, x.c_str(), x.size());
+                    c[x.size()] = '\0';
+                    cigarv.push_back(c);
+                }
+                if (target_end && aln.i > target_end) {
+                    ++deletions;
+                    const int len = aln.i - target_end;
+                    deleted_bp += len;
+                    std::string x = std::to_string(len) + "D";
+                    char* c = (char*) malloc(x.size() + 1);
+                    std::memcpy(c, x.c_str(), x.size());
+                    c[x.size()] = '\0';
+                    cigarv.push_back(c);
+                }
             }
             cigarv.push_back(cigar);
             query_end = aln.j + query_aligned_length;
             target_end = aln.i + target_aligned_length;
             total_score += aln.score;
+            total_query_aligned_length += query_aligned_length;
+            total_target_aligned_length += target_aligned_length;
         }
     }
 
     // gap-compressed identity
-    double gap_compressed_identity = (double)matches
-        / (matches + mismatches + insertions + deletions);
+    const double gap_compressed_identity = (double)matches / (matches + mismatches + insertions + deletions);
 
-    double block_identity = (double)matches
-        / (matches + mismatches + inserted_bp + deleted_bp);
+    const uint64_t edit_distance = mismatches + inserted_bp + deleted_bp;
 
-    if (gap_compressed_identity >= min_identity) {
-        out << query_name
-            << "\t" << query_total_length
-            << "\t" << query_offset + (query_is_rev ? query_length - query_end : query_start)
-            << "\t" << query_offset + (query_is_rev ? query_length - query_start : query_end)
-            << "\t" << (query_is_rev ? "-" : "+")
-            << "\t" << target_name
-            << "\t" << target_total_length
-            << "\t" << target_offset + target_start
-            << "\t" << target_offset + target_end
-            << "\t" << matches
-            << "\t" << std::max(total_target_aligned_length, total_query_aligned_length)
-            << "\t" << std::round(float2phred(1.0-block_identity))
-            << "\t" << "as:i:" << total_score
-            << "\t" << "gi:f:" << gap_compressed_identity
-            << "\t" << "bi:f:" << block_identity
-            << "\t" << "md:f:" << mash_dist_sum / trace.size()
-            << "\t" << "ma:i:" << matches
-            << "\t" << "mm:i:" << mismatches
-            << "\t" << "ni:i:" << insertions
-            << "\t" << "ii:i:" << inserted_bp
-            << "\t" << "nd:i:" << deletions
-            << "\t" << "dd:i:" << deleted_bp
-            << "\t" << "cg:Z:";
+    // identity over the full block
+    const double block_identity = (double)matches / (matches + edit_distance);
+
+    auto write_cigar_string = [&](std::ostream& out, const std::vector<char *>& cigarv) {
         ///for (auto* c : cigarv) { out << c; }
         // cigar op merging
         char last_op = '\0';
         int last_len = 0;
-        for (auto _c = cigarv.begin(); _c != cigarv.end(); ++_c) {
-            char* c = *_c;
+        for (auto c : cigarv) {
             int l = 0;
             int x = 0;
             while (c[x] != '\0') {
                 while (isdigit(c[x])) ++x;
                 char op = c[x];
-                int len;
+                int len = 0;
                 std::from_chars(c+l, c+x, len);
                 l = ++x;
                 if (last_len) {
@@ -540,7 +922,181 @@ void write_merged_alignment(
         if (last_len) {
             out << last_len << last_op;
         }
-        out << "\n";
+    };
+
+    auto write_tag_and_md_string = [&](std::ostream& out, const std::vector<char *>& cigarv, const int target_start) {
+        out << "MD:Z:";
+
+        char last_op = '\0';
+        int last_len = 0;
+        int t_off = target_start, l_MD = 0;
+        for (auto c : cigarv) {
+            int l = 0;
+            int x = 0;
+            while (c[x] != '\0') {
+                while (isdigit(c[x])) ++x;
+                char op = c[x];
+                int len = 0;
+                std::from_chars(c+l, c+x, len);
+                l = ++x;
+                if (last_len) {
+                    if (last_op == op) {
+                        len += last_len;
+                    } else {
+                        //std::cerr << t_off << "   " << last_len << last_op << std::endl;
+
+                        if (last_op == '=') {
+                            l_MD += last_len;
+                            t_off += last_len;
+                        }else if (last_op == 'X') {
+                            for (uint64_t ii = 0; ii < last_len; ++ii) {
+                                out << l_MD << target[t_off + ii];
+                                l_MD = 0;
+                            }
+
+                            t_off += last_len;
+                        }else if (last_op == 'D') {
+                            out << l_MD << "^";
+                            for (uint64_t ii = 0; ii < last_len; ++ii) {
+                                out << target[t_off + ii];
+                            }
+
+                            l_MD = 0;
+                            t_off += last_len;
+                        }
+                    }
+                }
+                last_op = op;
+                last_len = len;
+            }
+        }
+
+        if (last_len) {
+            //std::cerr << t_off << "   " << last_len << last_op << std::endl;
+
+            if (last_op == '=') {
+                out << last_len + l_MD;
+            }else if (last_op == 'X') {
+                for (uint64_t ii = 0; ii < last_len; ++ii) {
+                    out << l_MD << target[t_off + ii];
+                    l_MD = 0;
+                }
+                out << "0";
+            }else if (last_op == 'I'){
+                out << l_MD;
+            }else if (last_op == 'D') {
+                out << l_MD << "^";
+                for (uint64_t ii = 0; ii < last_len; ++ii) {
+                    out << target[t_off + ii];
+                }
+                out << "0";
+            }
+        }
+    };
+    //std::cerr << "target_offset: " << target_offset << " -- target_start: " << target_start << std::endl;
+    if (gap_compressed_identity >= min_identity) {
+        long elapsed_time_patching_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+
+        const std::string timings = "wt:i:" + std::to_string(elapsed_time_wflambda_ms) + "\tpt:i:" + std::to_string(elapsed_time_patching_ms);
+
+        if (paf_format_else_sam) {
+            out << query_name
+                << "\t" << query_total_length
+                << "\t" << query_offset + (query_is_rev ? query_length - query_end : query_start)
+                << "\t" << query_offset + (query_is_rev ? query_length - query_start : query_end)
+                << "\t" << (query_is_rev ? "-" : "+")
+                << "\t" << target_name
+                << "\t" << target_total_length
+                << "\t" << target_offset + target_start
+                << "\t" << target_offset + target_end
+                << "\t" << matches
+                << "\t" << std::max(total_target_aligned_length, total_query_aligned_length)
+                << "\t" << std::round(float2phred(1.0-block_identity))
+                << "\t" << "as:i:" << total_score
+                << "\t" << "gi:f:" << gap_compressed_identity
+                << "\t" << "bi:f:" << block_identity
+                //<< "\t" << "md:f:" << mash_dist_sum / trace.size()
+                //<< "\t" << "ma:i:" << matches
+                //<< "\t" << "mm:i:" << mismatches
+                //<< "\t" << "ni:i:" << insertions
+                //<< "\t" << "ii:i:" << inserted_bp
+                //<< "\t" << "nd:i:" << deletions
+                //<< "\t" << "dd:i:" << deleted_bp
+                << "\t" << "cg:Z:";
+
+                write_cigar_string(out, cigarv);
+
+                if (emit_md_tag) {
+                    out << "\t";
+
+                    write_tag_and_md_string(out, cigarv, target_start);
+                }
+
+                out << "\t" << timings << "\n";
+        } else {
+            uint64_t query_start_pos = query_offset + (query_is_rev ? query_length - query_end : query_start);
+            uint64_t query_end_pos = query_offset + (query_is_rev ? query_length - query_start : query_end);
+
+            out << query_name                                                   // Query template NAME
+                << "\t" << (query_is_rev ? "16" : "0")                          // bitwise FLAG
+                << "\t" << target_name                                          // Reference sequence NAME
+                << "\t" << target_offset + target_start + 1                     // 1-based leftmost mapping POSition
+                << "\t" << std::round(float2phred(1.0-block_identity))          // MAPping Quality
+                << "\t";
+
+            // CIGAR
+            if (query_is_rev) {
+                if (query_length > query_end_pos) {
+                    out << (query_length - query_end_pos) << "S";
+                }
+            } else {
+                if (query_start_pos > 0) {
+                    out << query_start_pos << "S";
+                }
+            }
+            write_cigar_string(out, cigarv);
+            if (query_is_rev) {
+                if (query_start_pos > 0) {
+                    out << query_start_pos << "S";
+                }
+            } else {
+                if (query_length > query_end_pos) {
+                    out << (query_length - query_end_pos) << "S";
+                }
+            }
+
+            out << "\t" << "*"                                                  // Reference name of the mate/next read
+                << "\t" << "0"                                                  // Position of the mate/next read
+                << "\t" << "0"                                                  // observed Template LENgth
+                << "\t";
+
+            // segment SEQuence
+            for (uint64_t p = 0; p < query_length; ++p) {
+                out << query[p];
+            }
+
+            out << "\t" << "*"                                                  // ASCII of Phred-scaled base QUALity+33
+                << "\t" << "NM:i:" << edit_distance
+                << "\t" << "AS:i:" << total_score
+                << "\t" << "gi:f:" << gap_compressed_identity
+                << "\t" << "bi:f:" << block_identity
+                //<< "\t" << "md:f:" << mash_dist_sum / trace.size()
+                //<< "\t" << "ma:i:" << matches
+                //<< "\t" << "mm:i:" << mismatches
+                //<< "\t" << "ni:i:" << insertions
+                //<< "\t" << "ii:i:" << inserted_bp
+                //<< "\t" << "nd:i:" << deletions
+                //<< "\t" << "dd:i:" << deleted_bp
+                << "";
+
+            if (emit_md_tag) {
+                out << "\t";
+
+                write_tag_and_md_string(out, cigarv, target_start);
+            }
+
+            out << "\t" << timings << "\n";
+        }
     }
     // always clean up
     for (auto *c : cigarv) {
@@ -582,22 +1138,20 @@ void write_alignment(
         uint64_t refAlignedLength = 0;
         uint64_t qAlignedLength = 0;
 
-        char* cigar = alignmentToCigar(&aln.edit_cigar,
-                                       refAlignedLength,
-                                       qAlignedLength,
-                                       matches,
-                                       mismatches,
-                                       insertions,
-                                       inserted_bp,
-                                       deletions,
-                                       deleted_bp);
+        char* cigar = wfa_alignment_to_cigar(&aln.edit_cigar,
+                                             refAlignedLength,
+                                             qAlignedLength,
+                                             matches,
+                                             mismatches,
+                                             insertions,
+                                             inserted_bp,
+                                             deletions,
+                                             deleted_bp);
 
         size_t alignmentRefPos = aln.i;
         //double identity = (double)matches / (matches + mismatches + insertions + deletions);
-        double gap_compressed_identity = (double)matches
-            / (matches + mismatches + insertions + deletions);
-        double block_identity = (double)matches
-            / (matches + mismatches + inserted_bp + deleted_bp);
+        double gap_compressed_identity = (double)matches / (matches + mismatches + insertions + deletions);
+        double block_identity = (double)matches / (matches + mismatches + inserted_bp + deleted_bp);
         // convert our coordinates to be relative to forward strand (matching PAF standard)
 
         if (gap_compressed_identity >= min_identity) {
@@ -622,13 +1176,13 @@ void write_alignment(
                 << "\t" << "as:i:" << aln.score
                 << "\t" << "gi:f:" << gap_compressed_identity
                 << "\t" << "bi:f:" << block_identity
-                << "\t" << "md:f:" << aln.mash_dist
-                << "\t" << "ma:i:" << matches
-                << "\t" << "mm:i:" << mismatches
-                << "\t" << "ni:i:" << insertions
-                << "\t" << "bi:i:" << inserted_bp
-                << "\t" << "nd:i:" << deletions
-                << "\t" << "bd:i:" << deleted_bp
+                //<< "\t" << "md:f:" << aln.mash_dist
+                //<< "\t" << "ma:i:" << matches
+                //<< "\t" << "mm:i:" << mismatches
+                //<< "\t" << "ni:i:" << insertions
+                //<< "\t" << "bi:i:" << inserted_bp
+                //<< "\t" << "nd:i:" << deletions
+                //<< "\t" << "bd:i:" << deleted_bp
                 << "\t" << "cg:Z:" << cigar;
             if (with_endline) {
                 out << std::endl;
@@ -638,7 +1192,7 @@ void write_alignment(
     }
 }
 
-char* alignmentToCigar(
+char* wfa_alignment_to_cigar(
     const wfa::edit_cigar_t* const edit_cigar,
     uint64_t& target_aligned_length,
     uint64_t& query_aligned_length,
@@ -652,14 +1206,12 @@ char* alignmentToCigar(
     // the edit cigar contains a character string of ops
     // here we compress them into the standard cigar representation
 
-    std::vector<char>* cigar = new std::vector<char>();
+    auto* cigar = new std::vector<char>();
     char lastMove = 0;  // Char of last move. 0 if there was no previous move.
     int numOfSameMoves = 0;
-    int start_idx = edit_cigar->begin_offset;
-    int end_idx = edit_cigar->end_offset;
-    if (end_idx == start_idx) {
-        end_idx = edit_cigar->end_offset;
-    }
+    const int start_idx = edit_cigar->begin_offset;
+    const int end_idx = edit_cigar->end_offset;
+
     //std::cerr << "start to end " << start_idx << " " << end_idx << std::endl;
     for (int i = start_idx; i <= end_idx; i++) {
         // if new sequence of same moves started
@@ -712,6 +1264,83 @@ char* alignmentToCigar(
         }
     }
     cigar->push_back(0);  // Null character termination.
+
+    char* cigar_ = (char*) malloc(cigar->size() * sizeof(char));
+    std::memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
+    delete cigar;
+
+    return cigar_;
+}
+
+
+char* edlib_alignment_to_cigar(
+    const unsigned char* const alignment,
+    const int alignment_length,
+    uint64_t& target_aligned_length,
+    uint64_t& query_aligned_length,
+    uint64_t& matches,
+    uint64_t& mismatches,
+    uint64_t& insertions,
+    uint64_t& inserted_bp,
+    uint64_t& deletions,
+    uint64_t& deleted_bp) {
+
+    // Maps move code from alignment to char in cigar.
+    //                        0    1    2    3
+    char moveCodeToChar[] = {'=', 'I', 'D', 'X'};
+
+    std::vector<char>* cigar = new std::vector<char>();
+    char lastMove = 0;  // Char of last move. 0 if there was no previous move.
+    int numOfSameMoves = 0;
+    auto& end_idx = alignment_length;
+    for (int i = 0; i <= end_idx; i++) {
+        if (i == end_idx || (moveCodeToChar[alignment[i]] != lastMove && lastMove != 0)) {
+            // calculate matches, mismatches, insertions, deletions
+            switch (lastMove) {
+            case '=':
+                matches += numOfSameMoves;
+                query_aligned_length += numOfSameMoves;
+                target_aligned_length += numOfSameMoves;
+                break;
+            case 'X':
+                mismatches += numOfSameMoves;
+                query_aligned_length += numOfSameMoves;
+                target_aligned_length += numOfSameMoves;
+                break;
+            case 'I':
+                ++insertions;
+                inserted_bp += numOfSameMoves;
+                query_aligned_length += numOfSameMoves;
+                break;
+            case 'D':
+                ++deletions;
+                deleted_bp += numOfSameMoves;
+                target_aligned_length += numOfSameMoves;
+                break;
+            default:
+                break;
+            }
+
+            // Write number of moves to cigar string.
+            int numDigits = 0;
+            for (; numOfSameMoves; numOfSameMoves /= 10) {
+                cigar->push_back('0' + numOfSameMoves % 10);
+                numDigits++;
+            }
+            std::reverse(cigar->end() - numDigits, cigar->end());
+            // Write code of move to cigar string.
+            cigar->push_back(lastMove);
+            // If not at the end, start new sequence of moves.
+            if (i < end_idx) {
+                numOfSameMoves = 0;
+            }
+        }
+        if (i < end_idx) {
+            lastMove = moveCodeToChar[alignment[i]];
+            numOfSameMoves++;
+        }
+    }
+    cigar->push_back(0);  // Null character termination.
     char* cigar_ = (char*) malloc(cigar->size() * sizeof(char));
     std::memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
     delete cigar;
@@ -742,6 +1371,23 @@ void wflign_edit_cigar_copy(
            edit_cigar_src->operations+edit_cigar_src->begin_offset,
            edit_cigar_dst->end_offset);
 }
+
+/*
+void edlib_to_wflign_edit_cigar_copy(
+    wfa::edit_cigar_t* const edit_cigar_dst,
+    char* const edlib_cigar_src,
+    const uint64_t& edit_distance,
+    const uint64_t& edlib_cigar_len) {
+    //edit_cigar_dst->max_operations = edlib_cigar_src->max_operations; //hmmm
+    edit_cigar_dst->begin_offset = 0;
+    edit_cigar_dst->end_offset = edlib_cigar_len;
+    edit_cigar_dst->score = edit_distance;
+    edit_cigar_dst->operations = (char*)malloc(edit_cigar_dst->end_offset);
+    memcpy(edit_cigar_dst->operations,
+           edlib_cigar_src,
+           edit_cigar_dst->end_offset);
+}
+*/
 
 }
 

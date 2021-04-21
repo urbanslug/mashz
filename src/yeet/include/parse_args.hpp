@@ -57,7 +57,7 @@ void parse_args(int argc,
     args::ValueFlag<float> map_pct_identity(parser, "%", "use this percent identity in the mashmap step [default: 95]", {'p', "map-pct-id"});
     args::Flag keep_low_map_pct_identity(parser, "K", "keep mappings with estimated identity below --map-pct-id=%", {'K', "keep-low-map-id"});
     args::Flag keep_low_align_pct_identity(parser, "A", "keep alignments with gap-compressed identity below --map-pct-id=%", {'O', "keep-low-align-id"});
-    args::ValueFlag<std::string> map_filter_mode(parser, "MODE", "filter mode for map step, either 'map', 'one-to-one', or 'none' [default: map]", {'f', "map-filter-mode"});
+    args::ValueFlag<std::string> map_filter_mode(parser, "MODE", "filter mode for map step, either 'map', 'one-to-one', or 'none' [default: 'one-to-one']", {'f', "map-filter-mode"});
     args::ValueFlag<int> map_secondaries(parser, "N", "number of secondary mappings to retain in 'map' filter mode (total number of mappings is this + 1) [default: 0]", {'n', "n-secondary"});
     args::ValueFlag<int> map_short_secondaries(parser, "N", "number of secondary mappings to retain for sequences shorter than segment length [default: 0]", {'S', "n-short-secondary"});
     args::Flag skip_self(parser, "", "skip self mappings when the query and target name is the same (for all-vs-all mode)", {'X', "skip-self"});
@@ -65,13 +65,19 @@ void parse_args(int argc,
     args::Flag approx_mapping(parser, "approx-map", "skip base-level alignment, producing an approximate mapping in PAF", {'m',"approx-map"});
     args::Flag no_merge(parser, "no-merge", "don't merge consecutive segment-level mappings", {'M', "no-merge"});
     args::ValueFlag<std::string> spaced_seed_params(parser, "spaced-seed", "Params that ALeS uses to generate spaced seeds <weight_of_seed> <number_of_seeds> <similarity> <region_length>", {'A', "spaced-seed"});
+    args::ValueFlag<float> pval_cutoff(parser, "N", "p-value cutoff for determining the window size [default: 1e-30]", {'w', "p-value-window-size"});
+    args::ValueFlag<float> confidence_interval(parser, "N", "confidence interval to relax the jaccard cutoff for mapping [default: 0.95]", {'c', "confidence-interval"});
 
     // align parameters
     args::ValueFlag<std::string> align_input_paf(parser, "FILE", "derive precise alignments for this input PAF", {'i', "input-paf"});
-    args::ValueFlag<int> wflambda_segment_length(parser, "N", "wflambda segment length: size (in bp) of segment mapped in hierarchical WFA problem [default: 200]", {'W', "wflamda-segment"});
+    args::ValueFlag<int> wflambda_segment_length(parser, "N", "wflambda segment length: size (in bp) of segment mapped in hierarchical WFA problem [default: 256]", {'W', "wflamda-segment"});
     args::ValueFlag<int> wflambda_min_wavefront_length(parser, "N", "minimum wavefront length (width) to trigger reduction [default: 100]", {'A', "wflamda-min"});
     args::ValueFlag<int> wflambda_max_distance_threshold(parser, "N", "maximum distance that a wavefront may be behind the best wavefront [default: 100000]", {'D', "wflambda-diff"});
     args::Flag exact_wflambda(parser, "N", "compute the exact wflambda, don't use adaptive wavefront reduction", {'E', "exact-wflambda"});
+
+    // format parameters
+    args::Flag emit_md_tag(parser, "N", "output the MD tag", {'d', "md-tag"});
+    args::Flag sam_format(parser, "N", "output in the SAM format (PAF by default)", {'a', "sam-format"});
 
     // general parameters
     args::ValueFlag<std::string> tmp_base(parser, "PATH", "base name for temporary files [default: `pwd`]", {'B', "tmp-base"});
@@ -137,7 +143,7 @@ void parse_args(int argc,
             exit(1);
         }
     } else {
-        map_parameters.filterMode = skch::filter::MAP;
+        map_parameters.filterMode = skch::filter::ONETOONE;
     }
 
     if (spaced_seed_params) {
@@ -182,7 +188,15 @@ void parse_args(int argc,
       map_parameters.spaced_seeds = sp;
     }
 
+    align_parameters.emit_md_tag = args::get(emit_md_tag);
+    align_parameters.sam_format = args::get(sam_format);
     map_parameters.split = !args::get(no_split);
+
+    if (align_parameters.sam_format && map_parameters.split) {
+        std::cerr << "[wfmash] ERROR, skch::parseandSave, Disable splitting of input sequences (with -N) in order to enable the SAM format" << std::endl;
+        exit(1);
+    }
+
     map_parameters.mergeMappings = !args::get(no_merge);
 
     if (kmer_size) {
@@ -193,9 +207,9 @@ void parse_args(int argc,
 
     if (segment_length) {
         map_parameters.segLength = args::get(segment_length);
-        if (map_parameters.segLength < 200) {
-            std::cerr << "[mashz] ERROR, skch::parseandSave, minimum segment length is required to be >= 200 bp." << std::endl
-                      << "[mashz] This is because Mashmap is not designed for computing short local alignments." << std::endl;
+        if (map_parameters.segLength < 100) {
+            std::cerr << "[wfmash] ERROR, skch::parseandSave, minimum segment length is required to be >= 100 bp." << std::endl
+                      << "[wfmash] This is because Mashmap is not designed for computing short local alignments." << std::endl;
             exit(1);
         }
     } else {
@@ -224,6 +238,21 @@ void parse_args(int argc,
         map_parameters.keep_low_pct_id = false;
     }
 
+
+    map_parameters.pval_cutoff = pval_cutoff ? args::get(pval_cutoff) : 1e-30;
+
+    if (confidence_interval) {
+        float ci = args::get(confidence_interval);
+
+        if (ci > 1 ) {
+            std::cerr << "[wfmash] ERROR, skch::parseandSave, confidence_interval must be between 0 and 1." << std::endl;
+            exit(1);
+        }
+        map_parameters.confidence_interval = ci;
+    } else {
+        map_parameters.confidence_interval = 0.95;
+    }
+
     if (keep_low_align_pct_identity) {
         align_parameters.min_identity = 0; // now unused
     } else {
@@ -233,7 +262,7 @@ void parse_args(int argc,
     if (wflambda_segment_length) {
         align_parameters.wflambda_segment_length = args::get(wflambda_segment_length);
     } else {
-        align_parameters.wflambda_segment_length = 200;
+        align_parameters.wflambda_segment_length = 256;
     }
 
     if (wflambda_min_wavefront_length) {
@@ -277,7 +306,8 @@ void parse_args(int argc,
      */
 
     //Compute optimal window size
-    map_parameters.windowSize = skch::Stat::recommendedWindowSize(skch::fixed::pval_cutoff,
+    map_parameters.windowSize = skch::Stat::recommendedWindowSize(map_parameters.pval_cutoff,
+                                                                  map_parameters.confidence_interval,
                                                                   map_parameters.kmerSize,
                                                                   map_parameters.alphabetSize,
                                                                   map_parameters.percentageIdentity,
